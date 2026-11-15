@@ -1,0 +1,18 @@
+{
+  "name": "yaanstep-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright + TypeScript test automation for yaanstep.com (website). Separate project from the site and the apps.",
+  "scripts": {
+    "test": "playwright test",
+    "test:report": "playwright show-report reports/html",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^22.0.0",
+    "http-server": "^14.1.1",
+    "typescript": "^5.9.0"
+  }
+}
