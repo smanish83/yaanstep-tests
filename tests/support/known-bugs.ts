@@ -26,6 +26,14 @@ export const KNOWN_BUGS: KnownBug[] = [
     jira: 'SCRUM-420', profile: 'live', title: /How it works: example steps are approved steps/,
     note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
   },
+  {
+    jira: 'SCRUM-445', profile: 'both', title: /maths draft: (menu|game|done) view fits the screen and passes the accessibility scan/,
+    note: 'maths-draft.html: white on teal is 4.24:1 (menu and done views); #art has role img but no name on number puzzles (game view)',
+  },
+  {
+    jira: 'SCRUM-446', profile: 'both', title: /maths draft: has an icon link like the other pages/,
+    note: 'maths-draft.html has no icon link (browsers ask for /favicon.ico and get a 404)',
+  },
 ];
 
 /** Call at the top of a test body. */
