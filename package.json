@@ -1,11 +1,14 @@
 {
   "name": "yaanstep-tests",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Playwright + TypeScript test automation for yaanstep.com (website). Separate project from the site and the apps.",
+  "description": "Playwright + TypeScript test automation for Yaanstep. Separate project from the site and the apps. Owned by QA.",
   "scripts": {
     "test": "playwright test",
+    "test:live": "SITE_PROFILE=live playwright test",
+    "test:next": "SITE_PROFILE=next playwright test",
     "test:report": "playwright show-report reports/html",
+    "summary": "node scripts/summary.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
