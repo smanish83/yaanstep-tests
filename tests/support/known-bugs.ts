@@ -31,6 +31,10 @@ export const KNOWN_BUGS: KnownBug[] = [
     note: 'maths-draft.html: white on teal is 4.24:1 on the daily-puzzles button (after choosing a band) and on done/game buttons; the plain menu view is fixed',
   },
   {
+    jira: 'SCRUM-449', profile: 'both', title: /"Hear it" speaks words, not symbols/,
+    note: 'maths-draft.html sends the written symbols to the voice, so "12 - 4" is read as "12 by 4"',
+  },
+  {
     jira: 'SCRUM-446', profile: 'both', title: /maths draft: has an icon link like the other pages/,
     note: 'maths-draft.html has no icon link (browsers ask for /favicon.ico and get a 404)',
   },
