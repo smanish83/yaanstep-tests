@@ -72,3 +72,6 @@ These gaps are covered by manual test cases for Manish's own devices (SCRUM-388)
 3. Put selectors and helpers in `tests/support`, not in the test.
 4. A test that finds a real bug stays failing until there is a Jira bug; then list it in `known-bugs.ts`.
 5. `npm run typecheck` and a full run before pushing. No retries: a test that passes only on a second try is a finding.
+
+## Project guide
+What each Yaanstep project covers, how to run it and which documents it needs: see `docs/projects/` in the private repo `smanish83/yaanstep-app`.
