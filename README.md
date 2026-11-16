@@ -40,6 +40,11 @@ When the new build is published, copy the `next` values into `live` in the same 
 
 Screen sizes: desktop (1280 px), phone (Pixel 7 size), and tablet (820 px) for layout and the Learning games.
 
+| `tests/website/maths-draft.spec.ts` | Hidden maths draft (`/maths-draft.html`, not linked, not public): menu, chapter list, every lesson (sums written in it are true, pictures agree with the words, Back/Next/Skip), chapter of ten and the 8-of-10 pass rule, wrong-answer hints, points, streak by day, ten-frame, number-line hop, storage, Reset, keyboard, screen-reader hooks, layout and axe scan in six screens, and that "Hear it" speaks words not symbols. |
+| `tests/website/maths-draft-sweep.spec.ts` | The same page over thousands of random puzzles (seeded, so a failure can be replayed): every chapter 12 times, free play 120 questions per age, 1 000 "Which is bigger" questions (both numbers offered), 500 odd-one-out questions (3 to 5 tappable shapes). Each answer is worked out by the test from the words and pictures on screen. |
+
+Run the maths draft only: `SITE_DIR=../yaanstep-website npm run test:maths` (about 8 minutes) or `npm run test:maths:quick` (about 2 minutes, no sweeps). On Windows PowerShell: `$env:SITE_DIR="../yaanstep-website"; npm run test:maths`. Then `npm run summary`.
+
 ## Known bugs
 
 `tests/support/known-bugs.ts` lists open Jira bugs that a test catches. Those tests show as expected failures, so a new failure stands out. When a bug is fixed, its test reports "now passing": remove the entry and close the Jira bug. Nothing goes in that list without a Jira bug, and a High bug blocks a release even though the run shows it as expected.

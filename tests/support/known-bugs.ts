@@ -27,8 +27,20 @@ export const KNOWN_BUGS: KnownBug[] = [
     note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
   },
   {
-    jira: 'SCRUM-445', profile: 'both', title: /maths draft: (menu after choosing an age band|game|done) view fits the screen and passes the accessibility scan/,
-    note: 'maths-draft.html: white on teal is 4.24:1 on the daily-puzzles button (after choosing a band) and on done/game buttons; the plain menu view is fixed',
+    jira: 'SCRUM-453', profile: 'both', title: /Reset after confirming clears points, streak AND the chapters done/,
+    note: 'maths draft: Reset clears points and streak but not the chapters already finished (key demo-ch)',
+  },
+  {
+    jira: 'SCRUM-454', profile: 'both', title: /maths draft: (lesson|number question|picture question|end screen) view fits the screen and passes the accessibility scan/,
+    note: 'maths draft: the Hear it button is named "Read it to me" but shows "Hear it" (WCAG 2.5.3 label in name)',
+  },
+  {
+    jira: 'SCRUM-455', profile: 'both', title: /screen reader hooks: progress and messages are live regions/,
+    note: 'maths draft: Chapters and Skip the lesson buttons are 40 px high, below the 48 px rule',
+  },
+  {
+    jira: 'SCRUM-456', profile: 'both', title: /chapter "Bigger or smaller" stays within 20/,
+    note: 'maths draft: ages 5-6 Bigger or smaller can ask 20 or 21 (equal numbers get +1)',
   },
   {
     jira: 'SCRUM-449', profile: 'both', title: /"Hear it" speaks words, not symbols/,
