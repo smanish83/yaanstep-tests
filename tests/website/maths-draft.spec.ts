@@ -180,6 +180,7 @@ test('a wrong answer gets a kind hint, is switched off, takes nothing away, turn
 
 test('a right answer first time earns 10 points, shows a clear "good job" message with a Next button, and moves on by itself after a pause', async ({ page }) => {
   await questions(page, '7-8');
+  await page.clock.pauseAt(new Date(dayTime(300).getTime() + 10 * 60_000)); // stop the clock: only runFor moves time, so the check cannot be hit by a slow machine
   const first = (await snapshot(page)).prompt;
   const before = await points(page);
   await tap(page, rightAnswer(await snapshot(page)));
