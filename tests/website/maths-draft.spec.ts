@@ -1,33 +1,32 @@
 import { test, expect, type Page } from '@playwright/test';
 import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
-import { BANDS, MULT_LIMIT, PAGE, dayTime, playSet, rightAnswer, snapshot, tap, wrongAnswer } from '../support/maths-draft';
+import { BANDS, CHAPTERS, band, boot, dayTime, lessonArithmeticProblems, lessonPictureProblems, lessonThenQuestions, next, openChapter, playQuestions, rightAnswer, snapshot, tap, wrongAnswer } from '../support/maths-draft';
 
-// The hidden maths draft page (maths-draft.html, SCRUM-409). It is not in the menu and is not in the site profile,
-// so it has its own spec. Expected answers are worked out HERE from the question text, never read from the page's code.
+// The hidden maths draft page (maths-draft.html, SCRUM-409). It is not in the menu and not in the site profile, so it has its own
+// spec. Expected answers are worked out in the support file from what is on the screen, never read from the page's code.
+// Timers run on a fake clock: the pause after a right answer and the dates are controlled by the test.
 
 const KEY = 'sprouts:demo';
+const CHAPTER_KEY = 'demo-ch';
 
 test.beforeEach(() => { knownBug(); test.setTimeout(240_000); });
 
-async function open(page: Page, day = 300) {
-  await page.clock.setFixedTime(dayTime(day));
-  await page.goto(PAGE);
-}
-const band = (page: Page, b: string) => page.locator(`#bands button[data-b="${b}"]`);
-/** Step 1 (pick an age band) and step 2 (daily five or star test). */
-async function start(page: Page, b: string, mode: 'daily' | 'mile' = 'daily') {
+const points = async (page: Page) => +(((await page.locator('#prog').innerText()).match(/(\d+) points/) ?? [])[1] ?? NaN);
+/** Menu -> band -> first lesson step shown. */
+async function begin(page: Page, b: string, opts: { day?: number; seed?: number } = {}) {
+  await boot(page, opts);
   await band(page, b).click();
-  await page.locator(mode === 'daily' ? '#daily' : '#mile').click();
 }
-const optionTexts = async (page: Page) => (await page.locator('#opts button').allInnerTexts()).map((t) => t.trim());
-const points = async (page: Page) => +(await page.locator('#pts').innerText());
-const streak = async (page: Page) => +(await page.locator('#streak').innerText());
+/** Menu -> band -> skip the lesson -> first question. */
+async function questions(page: Page, b: string, opts: { day?: number; seed?: number } = {}) {
+  await begin(page, b, opts);
+  await lessonThenQuestions(page, true);
+}
 
 test('loads as a hidden page: noindex, no menu link from any other page, no errors, nothing sent, no outside requests', async ({ page, request }) => {
-  const errors = watchErrors(page);
   const reqs = watchRequests(page);
-  await open(page);
+  await boot(page);
   await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', /noindex/);
   await expect(page.locator('h1')).toHaveText('Yaanstep maths (draft preview)');
   await expect(page.locator('.note')).toContainText('Not reviewed, not tested by QA, not for children yet');
@@ -41,180 +40,254 @@ test('loads as a hidden page: noindex, no menu link from any other page, no erro
 
 test('maths draft: has an icon link like the other pages', async ({ page }) => {
   // Chrome asks for /favicon.ico only some of the time, so the check is on the page itself, not on the console.
-  await open(page);
+  await boot(page);
   expect(await page.locator('link[rel~=icon]').count(), 'no <link rel="icon"> on the page').toBeGreaterThan(0);
 });
 
-test('maths draft: no console errors and no failed requests', async ({ page }) => {
+test('maths draft: no console errors and no failed requests through a lesson and a chapter', async ({ page }) => {
   await page.route('**/favicon.ico', (r) => r.fulfill({ status: 204 })); // covered by the icon-link test above
   const errors = watchErrors(page);
-  await open(page);
-  await start(page, '5-6');
-  await playSet(page, '5-6');
+  await begin(page, '5-6');
+  await lessonThenQuestions(page);
+  await playQuestions(page, '5-6');
   expect(errors).toEqual([]);
 });
 
 test('never uses the working name in anything a visitor can see or hear', async ({ page }) => {
-  await open(page);
+  await boot(page);
   const text = (await page.locator('body').innerText()).toLowerCase();
   expect(text).not.toContain('sprouts');
   expect(await page.title().then((t) => t.toLowerCase())).not.toContain('sprouts');
 });
 
-test('menu step 1: only the five age bands (and the parent area); no way to start yet', async ({ page }) => {
-  await open(page);
-  await expect(page.locator('#pick')).toBeVisible();
+test('menu: the five age bands and the parent area; nothing else showing', async ({ page }) => {
+  await boot(page);
   await expect(page.locator('#bands button')).toHaveCount(5);
-  await expect(page.locator('#play')).toBeHidden();
-  await expect(page.locator('#daily')).toBeHidden();
-  await expect(page.locator('#mile')).toBeHidden();
-  await expect(page.locator('#game')).toBeHidden();
-  await expect(page.locator('#done')).toBeHidden();
   for (const [i, b] of BANDS.entries()) await expect(page.locator('#bands button').nth(i)).toHaveText(`Ages ${b.replace('-', ' to ')}`);
-});
-
-test('menu step 2: after choosing a band, it says which, offers the two ways to start, and "Change age band" goes back', async ({ page }) => {
-  await open(page);
-  await band(page, '7-8').click();
-  await expect(page.locator('#pick')).toBeHidden();
-  await expect(page.locator('#chosen')).toHaveText('Ages 7 to 8');
-  await expect(page.locator('#daily')).toHaveText("Today's 5 puzzles");
-  await expect(page.locator('#mile')).toHaveText('Star test (10 puzzles)');
-  await expect(page.locator('#daily')).toBeFocused(); // focus moves to the next step for keyboard and screen reader users
-  await page.locator('#change').click();
-  await expect(page.locator('#pick')).toBeVisible();
-  await expect(page.locator('#play')).toBeHidden();
+  await expect(page.locator('#menu')).toBeVisible();
+  await expect(page.locator('#game')).toBeHidden();
+  await expect(page.locator('#chaps')).toBeHidden();
+  await expect(page.locator('#reset')).toBeVisible();
+  await expect(page.locator('#confirm')).toBeHidden();
 });
 
 for (const b of BANDS) {
-  test(`age ${b}: today's 5 puzzles are correct answers, four distinct choices, in range, full marks give 55 points`, async ({ page }) => {
-    await open(page);
-    await start(page, b);
+  test(`age ${b}: choosing the band opens chapter 1 with a lesson; the chapter list has the planned chapters in order`, async ({ page }) => {
+    await begin(page, b);
     await expect(page.locator('#game')).toBeVisible();
     await expect(page.locator('#menu')).toBeHidden(); // game mode: only the game on screen
-    await expect(page.locator('#prog')).toHaveText('1 of 5');
-    const played = await playSet(page, b);
-    expect(played).toHaveLength(5);
-    await expect(page.locator('#done')).toBeVisible();
-    await expect(page.locator('#result')).toHaveText('You got 5 of 5 on the first try. Your points: 55.');
+    await expect(page.locator('#q')).toHaveText(`Let us learn: ${CHAPTERS[b][0]}.`);
+    await expect(page.locator('#msg')).toContainText('Lesson: step 1 of ');
+    await page.locator('#chbtn').click();
+    await expect(page.locator('#chaps')).toBeVisible();
+    await expect(page.locator('#chtitle')).toHaveText(`Ages ${b.replace('-', ' to ')} chapters`);
+    const rows = (await page.locator('#chlist button').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').replace(/[✔]/g, '').trim());
+    expect(rows).toEqual(CHAPTERS[b].map((t, i) => `${i + 1}. ${t}`));
+    await page.locator('#chback').click();
+    await expect(page.locator('#menu')).toBeVisible();
   });
 }
 
-test('multiplication and division stay inside the times tables for each band', async ({ page }) => {
-  for (const b of ['7-8', '9-10', '11-12']) {
-    // The daily set uses the day as its seed; try several days so every kind turns up.
-    for (const day of [300, 301, 302, 303, 304, 305]) {
-      await open(page, day);
-      await page.evaluate(() => localStorage.clear());
-      await page.reload();
-      await start(page, b);
-      const played = await playSet(page, b);
-      for (const q of played) {
-        const mul = q.prompt.match(/^(\d+) x (\d+) = \?$/);
-        const div = q.prompt.match(/^(\d+) \/ (\d+) = \?$/);
-        if (mul) { expect(+mul[1], q.prompt).toBeLessThanOrEqual(MULT_LIMIT[b]); expect(+mul[2], q.prompt).toBeLessThanOrEqual(MULT_LIMIT[b]); }
-        if (div) { const r = +div[1] / +div[2]; expect(Number.isInteger(r), `${q.prompt} must divide exactly`).toBe(true); expect(+div[2], q.prompt).toBeLessThanOrEqual(MULT_LIMIT[b]); expect(r, q.prompt).toBeLessThanOrEqual(MULT_LIMIT[b]); }
+for (const b of BANDS) {
+  test(`age ${b}: every lesson is true — the sums written in it are right, pictures agree with the words, Back/Next/Skip work`, async ({ page }) => {
+    await boot(page, { seed: 5 });
+    const problems: string[] = [];
+    for (const [ci, title] of CHAPTERS[b].entries()) {
+      await openChapter(page, b, ci);
+      const first = (await page.locator('#q').innerText()).trim();
+      if (first !== `Let us learn: ${title}.`) problems.push(`chapter "${title}": first lesson step says "${first}"`);
+      const steps: string[] = [];
+      for (let i = 0; i < 30; i++) {
+        const say = (await page.locator('#q').innerText()).trim();
+        const big = await page.locator('#art .bigtxt').allInnerTexts();
+        steps.push(say);
+        for (const p of [...lessonArithmeticProblems(say), ...big.flatMap(lessonArithmeticProblems), ...(await lessonPictureProblems(page))]) problems.push(`chapter "${title}" step ${i + 1}: ${p}`);
+        if ((await page.locator('#msg').innerText()).trim() !== `Lesson: step ${i + 1} of ${(await page.locator('#msg').innerText()).match(/of (\d+)/)![1]}`) problems.push(`chapter "${title}": step counter is "${await page.locator('#msg').innerText()}" on step ${i + 1}`);
+        if (i === 0 && (await page.locator('#tb').count())) problems.push(`chapter "${title}": Back is offered on the first step`);
+        if (i > 0 && !(await page.locator('#tb').count())) problems.push(`chapter "${title}": no Back on step ${i + 1}`);
+        const label = (await page.locator('#tn').innerText()).trim();
+        if (label === 'Start the questions') {
+          if (await page.locator('#ts').count()) problems.push(`chapter "${title}": "Skip the lesson" is still offered on the last step`);
+          if (i >= 1) { await page.locator('#tb').click(); await expect(page.locator('#q')).toHaveText(steps[i - 1]); await page.locator('#tn').click(); } // Back then Next returns to the same step
+          await page.locator('#tn').click();
+          break;
+        }
+        await page.locator('#tn').click();
       }
+      if (steps.length < 2) problems.push(`chapter "${title}": the lesson has ${steps.length} step(s)`);
+      await expect(page.locator('#prog')).toContainText('points'); // we are in the questions now
+      const q = await snapshot(page);
+      if (!q.prompt) problems.push(`chapter "${title}": no first question`);
     }
-  }
+    expect(problems).toEqual([]);
+  });
+}
+
+test('"Skip the lesson" goes straight to the questions; a chapter has ten questions then an end screen', async ({ page }) => {
+  await questions(page, '7-8');
+  await expect(page.locator('#bar .seg')).toHaveCount(10);
+  const seen = await playQuestions(page, '7-8', { limit: 12 });
+  expect(seen, 'a chapter has exactly ten questions').toHaveLength(10);
+  await expect(page.locator('#q')).toHaveText('Chapter complete! 10 of 10 right first time.');
+  await expect(page.locator('#msg')).toContainText('Next chapter: Taking away within 100');
+  await expect(page.locator('#b1')).toHaveText('Next chapter');
+  await expect(page.locator('#b2')).toHaveText('Do this chapter again');
 });
 
-test('a wrong answer gets a kind hint, is switched off, takes nothing away, and the right answer still works', async ({ page }) => {
-  await open(page);
-  await start(page, '7-8');
+test('passing needs 8 of 10 right first time: 8 passes and unlocks the next chapter; 7 does not and says nothing is lost', async ({ page }) => {
+  await questions(page, '7-8');
+  await playQuestions(page, '7-8', { wrongFirst: 3 }); // 7 right first time
+  await expect(page.locator('#q')).toHaveText('7 of 10 right first time. Nice trying!');
+  await expect(page.locator('#msg')).toContainText('No points are lost');
+  await expect(page.locator('#b1')).toHaveText('Watch the lesson again');
+  await expect(page.locator('#b2')).toHaveText('Try 10 more');
+  await page.locator('#chbtn').click();
+  await expect(page.locator('#chlist button[data-i="0"]')).not.toContainText('✔');
+  await page.locator('#chlist button[data-i="0"]').click();
+  await lessonThenQuestions(page, true);
+  await playQuestions(page, '7-8', { wrongFirst: 2 }); // 8 right first time
+  await expect(page.locator('#q')).toHaveText('Chapter complete! 8 of 10 right first time.');
+  await page.locator('#chbtn').click();
+  await expect(page.locator('#chlist button[data-i="0"]')).toContainText('✔');
+  await expect(page.locator('#chlist button[data-i="1"]')).not.toContainText('✔');
+  // choosing the band again continues at the first unfinished chapter
+  await page.locator('#chback').click();
+  await band(page, '7-8').click();
+  await expect(page.locator('#q')).toHaveText('Let us learn: Taking away within 100.');
+});
+
+test('a wrong answer gets a kind hint, is switched off, takes nothing away, turns the progress segment red, and the right answer still works', async ({ page }) => {
+  await questions(page, '7-8');
   const s = await snapshot(page);
+  const wrong = wrongAnswer(s)!.text!;
   const right = rightAnswer(s).text!;
-  const wrong = wrongAnswer(s).text!;
-  const wrongButton = page.locator('#opts button', { hasText: new RegExp(`^${wrong}$`) });
+  const wrongButton = page.locator('#opts button', { hasText: new RegExp(`^\\s*${wrong}\\s*$`) });
+  const before = await points(page);
   await wrongButton.click();
   await expect(page.locator('#msg')).toContainText('Nearly! Here is a hint: ');
   await expect(page.locator('#msg')).toContainText('Try again.');
   await expect(wrongButton).toBeDisabled();
   await expect(page.locator('#msg')).not.toContainText(/wrong|incorrect|fail|bad|lose|lost|minus|-\s?\d+ points/i);
-  expect(await points(page)).toBe(0); // nothing is taken away
-  await page.locator('#opts button', { hasText: new RegExp(`^${right}$`) }).click();
-  await expect(page.locator('#msg')).toHaveText('You got it!');
-  await expect(page.locator('#opts button[disabled]')).toHaveCount(4);
+  await expect(page.locator('#bar .seg.now')).toHaveClass(/miss/);
+  expect(await points(page), 'nothing is taken away').toBe(before);
+  await page.locator('#opts button', { hasText: new RegExp(`^\\s*${right}\\s*$`) }).click();
+  await expect(page.locator('#msg .good')).toContainText(/You got it!/);
+  expect(await points(page), 'a right answer after a mistake earns 5').toBe(before + 5);
+  await expect(page.locator('#opts button:not([disabled])')).toHaveCount(0);
+  await next(page);
+  await expect(page.locator('#bar .seg.miss')).toHaveCount(1); // the first segment stays red
 });
 
-test('a question answered right only after a mistake does not count as a first-try win', async ({ page }) => {
-  await open(page);
-  await start(page, '5-6');
-  await playSet(page, '5-6', 2);
-  await expect(page.locator('#result')).toHaveText('You got 3 of 5 on the first try. Your points: 35.'); // 3 first-try wins x 10 + 5 for finishing
+test('a right answer first time earns 10 points, shows a clear "good job" message with a Next button, and moves on by itself after a pause', async ({ page }) => {
+  await questions(page, '7-8');
+  const first = (await snapshot(page)).prompt;
+  const before = await points(page);
+  await tap(page, rightAnswer(await snapshot(page)));
+  await expect(page.locator('#msg .good')).toBeVisible();
+  await expect(page.locator('#msg .good')).toHaveAttribute('role', 'status');
+  await expect(page.locator('#msg')).toContainText(/Good job!|Great work!|Well done!|Super!|Brilliant!/);
+  await expect(page.locator('#msg .wait')).toContainText('Next puzzle');
+  expect(await points(page)).toBe(before + 10);
+  await page.clock.runFor(1000);
+  expect((await snapshot(page)).prompt, 'still the same question before the pause ends').toBe(first);
+  await page.clock.runFor(700);
+  await expect(page.locator('#bar .seg.now')).toBeVisible();
+  await expect(page.locator('#msg .good')).toHaveCount(0);
 });
 
-test('a mistake on a picture puzzle (ages 3 to 4) is also first-try-lost, kind, and takes nothing away', async ({ page }) => {
-  await open(page);
-  await start(page, '3-4');
-  await playSet(page, '3-4', 2);
-  await expect(page.locator('#result')).toHaveText('You got 3 of 5 on the first try. Your points: 35.');
+test('the Next button moves on at once', async ({ page }) => {
+  await questions(page, '5-6');
+  await tap(page, rightAnswer(await snapshot(page)));
+  await page.locator('#skip').click();
+  await expect(page.locator('#msg .good')).toHaveCount(0);
+  await expect(page.locator('#bar .seg.done')).toHaveCount(1);
+  expect((await page.locator('#bar').getAttribute('aria-label')) ?? '').toMatch(/^Question 2 of 10\. 1 right first time so far$/);
 });
 
-test('the same day twice gives points once', async ({ page }) => {
-  await open(page);
-  await start(page, '5-6');
-  await playSet(page, '5-6');
-  await page.locator('#home').click();
-  expect(await points(page)).toBe(55);
-  await page.locator('#daily').click();
-  await playSet(page, '5-6');
-  await page.locator('#home').click();
-  expect(await points(page), 'second run on the same day must not add points').toBe(55);
-  expect(await streak(page)).toBe(1);
+test('ten-frame (ages 3 to 4, "Fill the frame"): taps fill and empty circles, a live count shows, the question ends exactly at the asked number', async ({ page }) => {
+  await begin(page, '3-4');
+  await openChapter(page, '3-4', 4);
+  await lessonThenQuestions(page, true);
+  let s = await snapshot(page);
+  // The questions get bigger as they go; answer the small ones until one asks for 3 or more, so there is room to tap and un-tap.
+  for (let i = 0; i < 9 && rightAnswer(s).cells! < 3; i++) { await tap(page, rightAnswer(s)); await next(page); s = await snapshot(page); }
+  expect(s.kind).toBe('frame');
+  const n = rightAnswer(s).cells!;
+  expect(n, 'a frame asking for 3 or more turned up').toBeGreaterThanOrEqual(3);
+  const cells = page.locator('#art button.cell');
+  await expect(cells).toHaveCount(10);
+  await expect(page.locator('#count')).toHaveText('0');
+  await cells.nth(0).click();
+  await expect(cells.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#count')).toHaveText('1');
+  await cells.nth(0).click(); // tap again takes it away
+  await expect(cells.nth(0)).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#count')).toHaveText('0');
+  for (let i = 0; i < n - 1; i++) await cells.nth(i).click();
+  await expect(page.locator('#msg .good')).toHaveCount(0); // not done yet at n - 1
+  await cells.nth(n - 1).click();
+  await expect(page.locator('#count')).toHaveText(String(n));
+  await expect(page.locator('#msg .good')).toBeVisible();
+  await expect(page.locator('#art button.cell:not([disabled])')).toHaveCount(0);
 });
 
-test('streak by day: consecutive days add up; one rest day a week is forgiven; a longer gap starts again at 1', async ({ page }) => {
-  // Days are counted from 1 Jan 2026 UTC. Pick days inside one week bucket (floor(day/7)).
-  const run = async (day: number) => {
-    await open(page, day);
-    await start(page, '5-6');
-    await playSet(page, '5-6');
-    await page.locator('#home').click();
+test('number-line hop game (small adding and taking-away): hopping lands on the right number and stops', async ({ page }) => {
+  await boot(page, { seed: 11 });
+  await band(page, '5-6').click();
+  await lessonThenQuestions(page, true);
+  let hops = 0;
+  for (let i = 0; i < 10 && hops < 3; i++) {
+    const s = await snapshot(page);
+    if (s.hop) {
+      hops++;
+      const m = s.prompt.match(/^(\d+) ([+-]) (\d+) = \?$/)!;
+      const answer = m[2] === '+' ? +m[1] + +m[3] : +m[1] - +m[3];
+      for (let k = 0; k < +m[3]; k++) await page.locator('#hop').click();
+      await expect(page.locator('#hopn')).toContainText(`you landed on ${answer}`);
+      await expect(page.locator('#hop')).toBeDisabled();
+      await expect(page.locator('#art .bead.here')).toHaveText(String(answer));
+    }
+    await tap(page, rightAnswer(s));
+    await next(page);
+  }
+  expect(hops, 'a hop game turned up').toBeGreaterThan(0);
+});
+
+test('the same-day streak: one answer a day counts; consecutive days add up; one rest day a week is forgiven; a longer gap starts again at 1', async ({ page }) => {
+  await boot(page, { day: 301 });
+  const dayStreak = async (day: number) => {
+    await page.clock.setSystemTime(dayTime(day));
+    if (await page.locator('#menu').isHidden()) await page.locator('#exit').click();
+    await band(page, '5-6').click();
+    await lessonThenQuestions(page, true);
+    await tap(page, rightAnswer(await snapshot(page)));
+    await page.locator('#exit').click();
+    return +(await page.locator('#streak').innerText());
   };
-  await run(301); expect(await streak(page)).toBe(1);
-  await run(302); expect(await streak(page)).toBe(2);
-  await run(304); expect(await streak(page), 'one missed day is forgiven').toBe(3);
-  await run(306); expect(await streak(page), 'a second missed day in the same week is not forgiven').toBe(1);
-  await run(310); expect(await streak(page), 'a gap of four days starts again').toBe(1);
-  await run(311); expect(await streak(page)).toBe(2);
+  expect(await dayStreak(301)).toBe(1);
+  expect(await dayStreak(301), 'a second answer on the same day does not add').toBe(1);
+  expect(await dayStreak(302)).toBe(2);
+  expect(await dayStreak(304), 'one missed day is forgiven').toBe(3);
+  expect(await dayStreak(306), 'a second missed day in the same week is not forgiven').toBe(1);
+  expect(await dayStreak(310), 'a gap of four days starts again').toBe(1);
+  expect(await dayStreak(311)).toBe(2);
 });
 
-test('star test: 8 of 10 first-try earns the star on that band; 7 does not', async ({ page }) => {
-  await open(page);
-  await start(page, '9-10', 'mile');
-  await expect(page.locator('#prog')).toHaveText('1 of 10');
-  await playSet(page, '9-10', 3); // three mistakes: 7 of 10 first try
-  await expect(page.locator('#result')).toContainText('7 of 10. You need 8 for the star.');
-  await page.locator('#home').click();
-  await expect(page.locator('#chosen')).not.toContainText('★');
-  await page.locator('#mile').click();
-  await playSet(page, '9-10', 2); // 8 of 10
-  await expect(page.locator('#result')).toContainText('Star earned! 8 of 10.');
-  await page.locator('#home').click();
-  await expect(page.locator('#chosen')).toContainText('★');
-  await page.locator('#change').click();
-  await expect(band(page, '9-10')).toContainText('★');
-  await expect(band(page, '7-8')).not.toContainText('★');
-});
-
-test('Exit goes back to the menu mid-game and keeps the points so far unchanged', async ({ page }) => {
-  await open(page);
-  await start(page, '5-6');
-  await expect(page.locator('#game')).toBeVisible();
+test('Exit goes back to the menu mid-chapter and keeps the points so far', async ({ page }) => {
+  await questions(page, '7-8');
+  await tap(page, rightAnswer(await snapshot(page)));
+  await next(page);
   await page.locator('#exit').click();
   await expect(page.locator('#menu')).toBeVisible();
   await expect(page.locator('#game')).toBeHidden();
-  expect(await points(page)).toBe(0);
+  await expect(page.locator('#pts')).toHaveText('10');
 });
 
-test('progress is kept only under one key in this browser, survives a reload, and Reset (after confirming) clears it; no cookies or other storage', async ({ page, context }) => {
-  await open(page);
-  await start(page, '5-6');
-  await playSet(page, '5-6');
-  await page.locator('#home').click();
+test('progress is kept only in this browser (two keys), survives a reload, holds no personal data; no cookies or other storage', async ({ page, context }) => {
+  await questions(page, '7-8');
+  await playQuestions(page, '7-8');
   const s = await storedData(page, context);
-  expect(s.local).toEqual([KEY]);
+  expect(s.local.sort(), 'localStorage keys').toEqual([CHAPTER_KEY, KEY].sort());
   expect(s.cookies).toEqual([]);
   expect(s.session).toEqual([]);
   expect(s.databases).toEqual([]);
@@ -222,22 +295,18 @@ test('progress is kept only under one key in this browser, survives a reload, an
   expect(s.workers).toBe(0);
   const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), KEY))!);
   expect(Object.keys(saved).sort()).toEqual(['lastDay', 'milestones', 'points', 'restDaysUsed', 'streak']); // no name, no text, no birth date
+  const chapters = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), CHAPTER_KEY))!);
+  expect(chapters).toEqual({ '7-8': 1 }); // only a band and how many chapters are done
+  expect(saved.points).toBe(100);
   await page.reload();
-  expect(await points(page)).toBe(55);
-  await page.locator('#reset').click();
-  await expect(page.locator('#confirm')).toBeVisible();
-  expect(await points(page), 'nothing is deleted until the person confirms').toBe(55);
-  await page.locator('#wipe').click();
-  expect(await points(page)).toBe(0);
-  expect(await streak(page)).toBe(0);
-  await expect(page.locator('#pick')).toBeVisible();
+  await expect(page.locator('#pts')).toHaveText('100');
 });
 
-test('reset is in the parent area, asks first, "No, keep my progress" keeps everything and returns focus to Reset', async ({ page }) => {
-  await open(page);
-  await start(page, '5-6');
-  await playSet(page, '5-6');
-  await page.locator('#home').click();
+test('Reset asks first, "No, keep my progress" keeps everything and returns focus to Reset', async ({ page }) => {
+  await questions(page, '7-8');
+  await playQuestions(page, '7-8');
+  await page.locator('#chbtn').click();
+  await page.locator('#chback').click();
   await expect(page.locator('#confirm')).toBeHidden();
   await page.locator('#reset').click();
   await expect(page.locator('#confirm')).toBeVisible();
@@ -247,9 +316,24 @@ test('reset is in the parent area, asks first, "No, keep my progress" keeps ever
   await page.locator('#keep').click();
   await expect(page.locator('#confirm')).toBeHidden();
   await expect(page.locator('#reset')).toBeFocused();
-  expect(await points(page)).toBe(55);
+  await expect(page.locator('#pts')).toHaveText('100');
+});
+
+test('Reset after confirming clears points, streak AND the chapters done, so the child starts fresh', async ({ page }) => {
+  await questions(page, '7-8');
+  await playQuestions(page, '7-8');
+  await page.locator('#chbtn').click();
+  await page.locator('#chback').click();
+  await page.locator('#reset').click();
+  await page.locator('#wipe').click();
+  await expect(page.locator('#pts')).toHaveText('0');
+  await expect(page.locator('#streak')).toHaveText('0');
+  expect(await page.evaluate((k) => localStorage.getItem(k), CHAPTER_KEY), 'chapters done must be cleared too').toBeFalsy();
+  await band(page, '7-8').click();
+  await expect(page.locator('#q'), 'after a reset the band starts again at chapter 1').toHaveText('Let us learn: Adding up to 100.');
   await page.reload();
-  expect(await points(page)).toBe(55);
+  await band(page, '7-8').click();
+  await expect(page.locator('#q'), 'and still after a reload').toHaveText('Let us learn: Adding up to 100.');
 });
 
 test('a browser that blocks storage still works for the session (no crash)', async ({ page }) => {
@@ -257,60 +341,58 @@ test('a browser that blocks storage still works for the session (no crash)', asy
   await page.addInitScript(() => {
     Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } });
   });
-  await open(page);
-  await start(page, '5-6');
-  await playSet(page, '5-6');
-  await expect(page.locator('#done')).toBeVisible();
+  await questions(page, '5-6');
+  await playQuestions(page, '5-6');
+  await expect(page.locator('#q')).toContainText('right first time');
   expect(errors).toEqual([]);
 });
 
-test('keyboard only: choose a band, start a set, answer with Enter, the focus ring is visible', async ({ page }) => {
-  await open(page);
+test('keyboard only: choose a band, go through the lesson, answer with Enter, the focus ring is visible', async ({ page }) => {
+  await boot(page);
   await band(page, '7-8').focus();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#daily')).toBeFocused();
+  await expect(page.locator('#q')).toHaveText('Let us learn: Adding up to 100.');
+  await page.locator('#tn').focus();
+  await expect(page.locator('#tn')).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#game')).toBeVisible();
+  await expect(page.locator('#msg')).toContainText('step 2 of');
+  await page.locator('#ts').focus();
+  await page.keyboard.press('Enter');
   const s = await snapshot(page);
-  const right = page.locator('#opts button', { hasText: new RegExp(`^${rightAnswer(s).text}$`) });
+  const right = page.locator('#opts button', { hasText: new RegExp(`^\\s*${rightAnswer(s).text}\\s*$`) });
   await right.focus();
   const outline = await right.evaluate((e) => getComputedStyle(e).outlineStyle + ' ' + getComputedStyle(e).outlineWidth);
-  expect(outline).toMatch(/solid 4px/);
+  expect(outline).toMatch(/solid [3-9]px/);
   await page.keyboard.press('Enter');
-  await expect(page.locator('#msg')).toContainText('Yes! Well done.');
+  await expect(page.locator('#msg')).toContainText(/Good job!|Great work!|Well done!|Super!|Brilliant!/);
 });
 
-test('keyboard only: odd-one-out shapes and "which group has more" cards can be reached with Tab and answered with Enter', async ({ page }) => {
-  await open(page);
+test('keyboard only: odd-one-out shapes and "which group has more" cards can be reached and answered with Enter', async ({ page }) => {
+  await boot(page, { seed: 3 });
   await band(page, '3-4').click();
-  let found = new Set<string>();
-  for (let attempt = 0; attempt < 12 && found.size < 2; attempt++) {
-    await page.locator('#mile').click();
-    for (let i = 0; i < 10; i++) {
-      const s = await snapshot(page);
-      const a = rightAnswer(s);
-      if ((s.kind === 'odd' || s.kind === 'more') && !found.has(s.kind)) {
-        found.add(s.kind);
-        const target = s.kind === 'odd' ? page.locator('#art .pick').nth(a.pick!) : page.locator('#art .card').nth(a.card!);
-        await target.focus();
-        await expect(target).toBeFocused();
-        await page.keyboard.press('Enter');
-        await expect(page.locator('#msg')).toContainText(/Yes! Well done\./);
-      } else await tap(page, a);
-      try { await page.waitForFunction((p) => document.getElementById('prog')!.textContent !== p || !document.getElementById('done')!.hidden, (await page.locator('#prog').textContent()) ?? '', { timeout: 4000 }); } catch { /* */ }
-      if (await page.locator('#done').isVisible()) break;
-    }
-    await page.locator('#home').click();
+  const found = new Set<string>();
+  for (const [ci, kind] of [[2, 'more'], [3, 'odd']] as const) {
+    await openChapter(page, '3-4', ci);
+    await lessonThenQuestions(page, true);
+    const s = await snapshot(page);
+    expect(s.kind).toBe(kind);
+    const a = rightAnswer(s);
+    const target = kind === 'odd' ? page.locator('#art .pick').nth(a.pick!) : page.locator('#art .card').nth(a.card!);
+    await target.focus();
+    await expect(target).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#msg .good')).toBeVisible();
+    found.add(kind);
   }
-  expect([...found].sort(), 'both tap-the-picture kinds should turn up within 12 star tests').toEqual(['more', 'odd']);
+  expect([...found].sort()).toEqual(['more', 'odd']);
 });
 
-test('screen reader hooks: progress and messages are live regions; the question is a heading; buttons are at least 48 px', async ({ page }) => {
-  await open(page);
-  await start(page, '5-6');
+test('screen reader hooks: progress and messages are live regions; the question is a heading; the progress bar says where you are; buttons are at least 48 px', async ({ page }) => {
+  await questions(page, '5-6');
   await expect(page.locator('#prog')).toHaveAttribute('aria-live', 'polite');
   await expect(page.locator('#msg')).toHaveAttribute('aria-live', 'polite');
   await expect(page.locator('#q')).toHaveAttribute('role', 'heading');
+  expect((await page.locator('#bar').getAttribute('aria-label')) ?? '').toBe('Question 1 of 10. 0 right first time so far');
   for (const b of await page.locator('button:visible').all()) {
     const box = await b.boundingBox();
     expect(box!.width, await b.innerText()).toBeGreaterThanOrEqual(47.5);
@@ -318,14 +400,18 @@ test('screen reader hooks: progress and messages are live regions; the question 
   }
 });
 
-for (const view of ['menu', 'menu after choosing an age band', 'game', 'done'] as const) {
+// Layout and accessibility scan of every kind of screen, at the device width and at 320 px.
+const VIEWS = ['menu', 'chapter list', 'lesson', 'number question', 'picture question', 'end screen'] as const;
+for (const view of VIEWS) {
   for (const width of [0, 320]) {
     test(`maths draft: ${view} view fits the screen and passes the accessibility scan${width ? ' at 320 px' : ''}`, async ({ page }) => {
       if (width) await page.setViewportSize({ width, height: 700 });
-      await open(page);
-      if (view === 'menu after choosing an age band') await band(page, '5-6').click();
-      if (view === 'game' || view === 'done') await start(page, '5-6');
-      if (view === 'done') await playSet(page, '5-6');
+      await boot(page, { seed: 2 });
+      if (view === 'chapter list') { await band(page, '5-6').click(); await page.locator('#chbtn').click(); }
+      if (view === 'lesson') await band(page, '5-6').click();
+      if (view === 'number question') { await band(page, '7-8').click(); await lessonThenQuestions(page, true); }
+      if (view === 'picture question') { await band(page, '3-4').click(); await lessonThenQuestions(page, true); }
+      if (view === 'end screen') { await band(page, '7-8').click(); await lessonThenQuestions(page, true); await playQuestions(page, '7-8'); }
       expect(await horizontalOverflow(page), 'overflow').toBeLessThanOrEqual(1);
       expect(await axeViolations(page), `${view} view`).toEqual([]);
     });
@@ -339,23 +425,30 @@ test('maths draft: "Hear it" speaks words, not symbols ("12 - 4" must not be rea
     Object.defineProperty(window, 'speechSynthesis', { value: { cancel() {}, speak(u: any) { (window as any).__spoken.push(u.text); } } });
   });
   const problems: string[] = [];
-  await open(page);
+  const hear = async (what: string) => {
+    await page.evaluate(() => ((window as any).__spoken.length = 0));
+    await page.locator('#say').click();
+    const spoken: string[] = await page.evaluate(() => (window as any).__spoken);
+    if (!spoken.length) problems.push(`${what}: "Hear it" said nothing`);
+    for (const t of spoken) if (/[-+/=−×÷]|\dx\d|\bx\b/.test(t.replace(/^Which is .*/, ''))) problems.push(`${what}: spoken as "${t}": symbols are left for the voice to guess`);
+  };
+  await boot(page, { seed: 9 });
   for (const b of ['5-6', '7-8', '9-10', '11-12']) {
-    if (await page.locator('#change').isVisible()) await page.locator('#change').click();
-    await start(page, b, 'mile');
-    for (let i = 0; i < 10; i++) {
-      const s = await snapshot(page);
-      await page.evaluate(() => ((window as any).__spoken.length = 0));
-      await page.locator('#say').click();
-      const spoken: string[] = await page.evaluate(() => (window as any).__spoken);
-      const arithmetic = /[-+x/=]/.test(s.prompt.replace(/Which is .*/, ''));
-      if (arithmetic) for (const t of spoken) if (/[-+/=]|\dx\d|\bx\b/.test(t)) problems.push(`"${s.prompt}" is spoken as "${t}": symbols are left for the voice to guess`);
-      if (!spoken.length) problems.push(`"${s.prompt}": "Hear it" said nothing`);
-      await tap(page, rightAnswer(s));
-      await page.waitForFunction((p) => document.getElementById('prog')!.textContent !== p || !document.getElementById('done')!.hidden, `${i + 1} of 10`, { timeout: 4000 });
-      if (await page.locator('#done').isVisible()) break;
+    if (await page.locator('#game').isVisible()) await page.locator('#exit').click();
+    await band(page, b).click();
+    // the lesson (first chapter), every step
+    for (let i = 0; i < 30; i++) {
+      await hear(`ages ${b} lesson step ${i + 1}`);
+      const label = (await page.locator('#tn').innerText()).trim();
+      await page.locator('#tn').click();
+      if (label === 'Start the questions') break;
     }
-    await page.locator('#home').click();
+    for (let i = 0; i < 4; i++) {
+      const s = await snapshot(page);
+      await hear(`ages ${b} question "${s.prompt}"`);
+      await tap(page, rightAnswer(s));
+      await next(page);
+    }
   }
-  expect([...new Set(problems)].slice(0, 15)).toEqual([]);
+  expect([...new Set(problems)].slice(0, 20)).toEqual([]);
 });
