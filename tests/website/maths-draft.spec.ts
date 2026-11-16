@@ -331,3 +331,31 @@ for (const view of ['menu', 'menu after choosing an age band', 'game', 'done'] a
     });
   }
 }
+
+test('maths draft: "Hear it" speaks words, not symbols ("12 - 4" must not be read as "12 by 4")', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as any).__spoken = [];
+    (window as any).SpeechSynthesisUtterance = function (t: string) { this.text = t; };
+    Object.defineProperty(window, 'speechSynthesis', { value: { cancel() {}, speak(u: any) { (window as any).__spoken.push(u.text); } } });
+  });
+  const problems: string[] = [];
+  await open(page);
+  for (const b of ['5-6', '7-8', '9-10', '11-12']) {
+    if (await page.locator('#change').isVisible()) await page.locator('#change').click();
+    await start(page, b, 'mile');
+    for (let i = 0; i < 10; i++) {
+      const s = await snapshot(page);
+      await page.evaluate(() => ((window as any).__spoken.length = 0));
+      await page.locator('#say').click();
+      const spoken: string[] = await page.evaluate(() => (window as any).__spoken);
+      const arithmetic = /[-+x/=]/.test(s.prompt.replace(/Which is .*/, ''));
+      if (arithmetic) for (const t of spoken) if (/[-+/=]|\dx\d|\bx\b/.test(t)) problems.push(`"${s.prompt}" is spoken as "${t}": symbols are left for the voice to guess`);
+      if (!spoken.length) problems.push(`"${s.prompt}": "Hear it" said nothing`);
+      await tap(page, rightAnswer(s));
+      await page.waitForFunction((p) => document.getElementById('prog')!.textContent !== p || !document.getElementById('done')!.hidden, `${i + 1} of 10`, { timeout: 4000 });
+      if (await page.locator('#done').isVisible()) break;
+    }
+    await page.locator('#home').click();
+  }
+  expect([...new Set(problems)].slice(0, 15)).toEqual([]);
+});
