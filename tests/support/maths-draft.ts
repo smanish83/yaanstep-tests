@@ -17,7 +17,7 @@ export const dayTime = (n: number) => new Date(DAY0 + n * 864e5 + 12 * 36e5); //
 /** Chapter titles as the person sees them in the chapter list (the oracle for what each chapter may ask). */
 export const CHAPTERS: Record<string, string[]> = {
   '3-4': ['Counting', 'One more', 'Which has more?', 'Odd one out', 'Fill the frame'],
-  '5-6': ['Adding up to 5', 'Adding up to 10', 'Taking away within 10', 'Make 10', 'Adding up to 20', 'Taking away within 20', 'Bigger or smaller', 'Adding three numbers', 'Put in order'],
+  '5-6': ['Seeing 5 and 10 in blocks', 'Adding up to 5', 'Adding up to 10', 'Taking away within 10', 'Make 10', 'Adding up to 20', 'Taking away within 20', 'Bigger or smaller', 'Adding three numbers', 'Put in order'],
   '7-8': ['Adding up to 100', 'Taking away within 100', 'Groups of 2, 5 and 10', 'Groups of 3 and 4', 'Sharing equally', 'Missing numbers'],
   '9-10': ['Adding up to 1000', 'Taking away within 1000', 'Times tables to 12', 'Sharing and dividing', 'Missing numbers', 'Put in order'],
   '11-12': ['Adding big numbers', 'Taking away big numbers', 'Multiplying bigger numbers', 'Dividing bigger numbers', 'Missing numbers', 'Put in order'],
@@ -161,6 +161,7 @@ export function chapterProblems(title: string, band: string, s: Snapshot): strin
   let m: RegExpMatchArray | null;
   if ((m = title.match(/^Adding up to (\d+)$/))) { need('add'); if (s.kind === 'add' && nums[0] + nums[1] > +m[1]) bad(`the sum is above ${m[1]}`); }
   else if ((m = title.match(/^Taking away within (\d+)$/))) { need('subtract'); if (s.kind === 'subtract' && nums[0] > +m[1]) bad(`starts above ${m[1]}`); }
+  else if (title === 'Seeing 5 and 10 in blocks') { need('missing'); if (s.kind === 'missing' && ![5, 10].includes(nums[1])) bad('the total is not 5 or 10'); }
   else if (title === 'Make 10') { need('missing'); if (s.kind === 'missing' && nums[1] !== 10) bad('the total is not 10'); }
   else if (title === 'Bigger or smaller') { need('compare'); if (nums.some((n) => n > 20)) bad('number above 20'); }
   else if (title === 'Adding three numbers') need('add3');
@@ -383,6 +384,7 @@ export async function lessonPictureProblems(page: Page): Promise<string[]> {
       cells: art.querySelectorAll('.frame .cell').length,
       objects: [...art.querySelectorAll('.grp')].map((g) => g.querySelectorAll('svg').length),
       crossed: art.querySelectorAll('.obj.cross').length,
+      blocks: [...art.querySelectorAll('.blocks')].map((b) => [...b.querySelectorAll('.blk')].map((k) => (k.classList.contains('ba') ? 'a' : k.classList.contains('bb') ? 'b' : k.classList.contains('bx') ? 'x' : '.')).join('')),
     };
   });
   let m: RegExpMatchArray | null;
@@ -399,5 +401,15 @@ export async function lessonPictureProblems(page: Page): Promise<string[]> {
   if ((m = say.match(/^A frame holds up to ten circles\. Let us fill (\d+)\./)) && info.filled !== +m[1]) out.push(`"${say}": ${info.filled} circles are filled`);
   if ((m = say.match(/^Here are (\d+) (?:red circles|blue stars)\./)) && info.objects[0] !== +m[1]) out.push(`"${say}": ${info.objects[0]} shapes are drawn`);
   if ((m = say.match(/^(\d+) apples\. Take away (\d+)\./)) && (info.objects[0] !== +m[1] || info.crossed !== +m[2])) out.push(`"${say}": ${info.objects[0]} shapes with ${info.crossed} crossed out`);
+  // Block patterns (draft of 16 Nov): two columns of five blocks, filled column by column. The counts are checked against the
+  // numbers written in the step, and the filled blocks must come first (no gaps) so the columns of 5 read correctly.
+  for (const b of info.blocks) {
+    const a = (b.match(/a/g) ?? []).length, c = (b.match(/b/g) ?? []).length;
+    if (b.length !== 10) out.push(`"${say}": the block picture has ${b.length} blocks, not 10 (two columns of 5)`);
+    if (!/^a*b*[.x]*$/.test(b)) out.push(`"${say}": filled blocks are not together at the start: ${b}`);
+    if ((m = say.match(/(\d+) filled, and (\d+) more to fill/)) && (a !== +m[1] || c !== +m[2])) out.push(`"${say}": blocks show ${a} filled and ${c} more, expected ${m[1]} and ${m[2]}`);
+    if ((m = say.match(/(\d+) \+ (\d+) = (\d+):$/)) && (a !== +m[1] || c !== +m[2])) out.push(`"${say}": blocks show ${a} + ${c}, expected ${m[1]} + ${m[2]}`);
+    if ((m = say.match(/Take away (\d+), and (\d+) are left/)) && a + c !== +m[2]) out.push(`"${say}": blocks show ${a + c} left, expected ${m[2]}`);
+  }
   return out;
 }

@@ -234,7 +234,7 @@ test('ten-frame (ages 3 to 4, "Fill the frame"): taps fill and empty circles, a 
 
 test('number-line hop game (small adding and taking-away): hopping lands on the right number and stops', async ({ page }) => {
   await boot(page, { seed: 11 });
-  await band(page, '5-6').click();
+  await openChapter(page, '5-6', CHAPTERS['5-6'].indexOf('Adding up to 5')); // chapter 1 is now the blocks chapter, which asks missing-number questions
   await lessonThenQuestions(page, true);
   let hops = 0;
   for (let i = 0; i < 10 && hops < 3; i++) {

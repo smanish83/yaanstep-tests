@@ -79,7 +79,7 @@ test('compare questions (SCRUM-447): over 1 000 "Which is bigger" questions, bot
   const problems: string[] = [];
   let compares = 0;
   for (let n = 0; n < 100; n++) {
-    await openChapter(page, '5-6', 6); // "Bigger or smaller"
+    await openChapter(page, '5-6', CHAPTERS['5-6'].indexOf('Bigger or smaller'));
     await lessonThenQuestions(page, true);
     for (let i = 0; i < 10; i++) {
       const s = await snapshot(page);
@@ -167,7 +167,7 @@ test('ages 5-6 chapter "Bigger or smaller" stays within 20 (SCRUM-456)', async (
   await band(page, '5-6').click();
   const over: string[] = [];
   for (let n = 0; n < 60; n++) {
-    await openChapter(page, '5-6', 6);
+    await openChapter(page, '5-6', CHAPTERS['5-6'].indexOf('Bigger or smaller'));
     await lessonThenQuestions(page, true);
     for (let i = 0; i < 10; i++) {
       const s = await snapshot(page);

@@ -15,6 +15,14 @@ interface KnownBug { jira: string; profile: 'live' | 'next' | 'both'; title: Reg
 
 export const KNOWN_BUGS: KnownBug[] = [
   {
+    jira: 'SCRUM-456', profile: 'both', title: /chapter "Bigger or smaller" stays within 20/,
+    note: 'maths draft: ages 5-6 Bigger or smaller can ask 20 or 21 (equal numbers get +1)',
+  },
+  {
+    jira: 'SCRUM-469', profile: 'next', title: /the footer says the app is 13 and up and these lessons are for a parent and child together/,
+    note: 'the shared footer dropped the Learning page line "for a parent and child to use together"',
+  },
+  {
     jira: 'SCRUM-418', profile: 'live', title: /^page [\w-]+ › accessibility scan/,
     note: 'footer links have contrast 4.34:1 (AA needs 4.5:1) on every page; fix exists but is not published',
   },
@@ -23,7 +31,7 @@ export const KNOWN_BUGS: KnownBug[] = [
     note: 'the dice game ignores the "Up to 10" and "Taking away" choices',
   },
   {
-    jira: 'SCRUM-420', profile: 'live', title: /How it works: example steps are approved steps/,
+    jira: 'SCRUM-420', profile: 'both', title: /How it works: example steps are approved steps/,
     note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
   },
   {
@@ -37,10 +45,6 @@ export const KNOWN_BUGS: KnownBug[] = [
   {
     jira: 'SCRUM-455', profile: 'both', title: /screen reader hooks: progress and messages are live regions/,
     note: 'maths draft: Chapters and Skip the lesson buttons are 40 px high, below the 48 px rule',
-  },
-  {
-    jira: 'SCRUM-456', profile: 'both', title: /chapter "Bigger or smaller" stays within 20/,
-    note: 'maths draft: ages 5-6 Bigger or smaller can ask 20 or 21 (equal numbers get +1)',
   },
   {
     jira: 'SCRUM-449', profile: 'both', title: /"Hear it" speaks words, not symbols/,
