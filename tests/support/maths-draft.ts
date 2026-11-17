@@ -17,7 +17,7 @@ export const dayTime = (n: number) => new Date(DAY0 + n * 864e5 + 12 * 36e5); //
 /** Chapter titles as the person sees them in the chapter list (the oracle for what each chapter may ask). */
 export const CHAPTERS: Record<string, string[]> = {
   '3-4': ['Counting', 'One more', 'Which has more?', 'Odd one out', 'Fill the frame'],
-  '5-6': ['Seeing 5 and 10 in blocks', 'Adding up to 5', 'Adding up to 10', 'Taking away within 10', 'Make 10', 'Adding up to 20', 'Taking away within 20', 'Bigger or smaller', 'Adding three numbers', 'Put in order'],
+  '5-6': ['Seeing 5 and 10 in blocks', 'Adding up to 5', 'Adding up to 10', 'Taking away within 10', 'Make 10', 'Adding up to 20', 'Taking away within 20', 'Bigger or smaller', 'Adding three numbers', 'Put in order', 'Coins: penny, nickel, dime, quarter', 'Counting pennies and dimes', "Clock: o'clock", 'Clock: half past'],
   '7-8': ['Adding up to 100', 'Taking away within 100', 'Groups of 2, 5 and 10', 'Groups of 3 and 4', 'Sharing equally', 'Missing numbers'],
   '9-10': ['Adding up to 1000', 'Taking away within 1000', 'Times tables to 12', 'Sharing and dividing', 'Missing numbers', 'Put in order'],
   '11-12': ['Adding big numbers', 'Taking away big numbers', 'Multiplying bigger numbers', 'Dividing bigger numbers', 'Missing numbers', 'Put in order'],
