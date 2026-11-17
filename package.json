@@ -11,7 +11,8 @@
     "summary": "node scripts/summary.mjs",
     "typecheck": "tsc --noEmit",
     "test:maths": "playwright test tests/website/maths-draft",
-    "test:maths:quick": "playwright test tests/website/maths-draft.spec.ts"
+    "test:maths:quick": "playwright test tests/website/maths-draft.spec.ts",
+    "test:reading": "playwright test tests/website/reading-draft"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",

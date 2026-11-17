@@ -42,6 +42,9 @@ Screen sizes: desktop (1280 px), phone (Pixel 7 size), and tablet (820 px) for l
 
 | `tests/website/maths-draft.spec.ts` | Hidden maths draft (`/maths-draft.html`, not linked, not public): menu, chapter list, every lesson (sums written in it are true, pictures agree with the words, Back/Next/Skip), chapter of ten and the 8-of-10 pass rule, wrong-answer hints, points, streak by day, ten-frame, number-line hop, storage, Reset, keyboard, screen-reader hooks, layout and axe scan in six screens, and that "Hear it" speaks words not symbols. |
 | `tests/website/maths-draft-sweep.spec.ts` | The same page over thousands of random puzzles (seeded, so a failure can be replayed): every chapter 12 times, free play 120 questions per age, 1 000 "Which is bigger" questions (both numbers offered), 500 odd-one-out questions (3 to 5 tappable shapes). Each answer is worked out by the test from the words and pictures on screen. |
+| `tests/website/reading-draft.spec.ts` | Hidden reading draft (`/reading-draft.html`, mode A, not linked, not public): hidden-page rules, the four steps, every letter, picture word, blend word and common word against the content list in doc 18 (what is shown and exactly what is spoken, using a recorded speech stub), calm rules (no score, wrong-answer or timer wording), break screen, speed and break-length settings, English on-device voices only, storage limited to parent settings, keyboard, 44 px targets, 320 px layout and axe scan. |
+
+Run the reading draft only: `SITE_DIR=../yaanstep-website npm run test:reading` (about 1 minute).
 
 Run the maths draft only: `SITE_DIR=../yaanstep-website npm run test:maths` (about 8 minutes) or `npm run test:maths:quick` (about 2 minutes, no sweeps). On Windows PowerShell: `$env:SITE_DIR="../yaanstep-website"; npm run test:maths`. Then `npm run summary`.
 

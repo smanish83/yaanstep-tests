@@ -54,6 +54,14 @@ export const KNOWN_BUGS: KnownBug[] = [
     jira: 'SCRUM-446', profile: 'both', title: /maths draft: has an icon link like the other pages/,
     note: 'maths-draft.html has no icon link (browsers ask for /favicon.ico and get a 404)',
   },
+  {
+    jira: 'SCRUM-475', profile: 'both', title: /reading draft: has an icon link like the other pages/,
+    note: 'reading-draft.html has no icon link (same as SCRUM-446 for the maths draft); SCRUM-475 tracks it with the contrast bug',
+  },
+  {
+    jira: 'SCRUM-475', profile: 'both', title: /layout fits the screen and the accessibility scan is clean on the menu and each step/,
+    note: 'reading-draft.html: pressed Calm and 30 buttons are white on #1d8a76, contrast 4.24:1 (needs 4.5:1)',
+  },
 ];
 
 /** Call at the top of a test body. */

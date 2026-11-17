@@ -7,27 +7,45 @@ import { axeViolations, expectNothingStored } from '../support/checks';
 test.describe('theme switcher', () => {
   test.skip(site.themes.length === 0, `The "${site.name}" site has no theme switcher. Run with SITE_PROFILE=next against the new build.`);
 
-  test('offers the four approved themes, changes the page, and remembers the choice on other pages without a cookie', async ({ page, context }) => {
+  test('offers the four approved themes as colour buttons, changes the page, and remembers the choice on other pages without a cookie', async ({ page, context }) => {
     await page.goto(url('index'));
-    const select = page.locator('#theme-select');
-    const options = await select.locator('option').allTextContents();
-    expect(options.map((o) => o.trim())).toEqual(['Calm Teal', 'Sunrise', 'Midnight Focus', 'Playful Bloom']);
-    const second = (await select.locator('option').nth(1).getAttribute('value'))!;
-    await select.selectOption(second);
-    await expect(page.locator('html')).toHaveAttribute('data-theme', second);
+    const group = page.getByRole('group', { name: 'Colour theme' });
+    const buttons = group.getByRole('button');
+    expect(await buttons.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')))).toEqual(['Theme: Calm Teal', 'Theme: Sunrise', 'Theme: Midnight Focus', 'Theme: Playful Bloom']);
+    await expect(buttons.nth(0)).toHaveAttribute('aria-pressed', 'true');
+    await buttons.nth(1).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'sunrise');
+    await expect(buttons.nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await expect(buttons.nth(0)).toHaveAttribute('aria-pressed', 'false');
     await page.goto(url('team'));
-    await expect(page.locator('html')).toHaveAttribute('data-theme', second);
-    await expect(page.locator('#theme-select')).toHaveValue(second);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'sunrise');
+    await expect(page.getByRole('group', { name: 'Colour theme' }).getByRole('button').nth(1)).toHaveAttribute('aria-pressed', 'true');
     await expectNothingStored(page, context); // the theme key is the only key allowed (SCRUM-401)
   });
 
-  test('the theme menu can be used with the keyboard and has a label', async ({ page }) => {
+  test('going back to Calm Teal removes the stored choice', async ({ page }) => {
     await page.goto(url('index'));
-    const select = page.locator('#theme-select');
-    await expect(page.getByLabel(/theme/i)).toHaveAttribute('id', 'theme-select');
-    await select.focus();
-    await page.keyboard.press('ArrowDown');
-    await expect(page.locator('html')).toHaveAttribute('data-theme', /.+/);
+    const buttons = page.getByRole('group', { name: 'Colour theme' }).getByRole('button');
+    await buttons.nth(2).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'midnight');
+    await buttons.nth(0).click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.+/);
+    expect(await page.evaluate(() => localStorage.getItem('yaanstep-theme'))).toBeNull();
+  });
+
+  test('the colour buttons are labelled, keyboard-operable and big enough to tap', async ({ page }) => {
+    await page.goto(url('index'));
+    const group = page.getByRole('group', { name: 'Colour theme' });
+    const buttons = group.getByRole('button');
+    for (let i = 0; i < 4; i++) {
+      const box = (await buttons.nth(i).boundingBox())!;
+      expect(box.width, `button ${i} width`).toBeGreaterThanOrEqual(44);
+      expect(box.height, `button ${i} height`).toBeGreaterThanOrEqual(44);
+    }
+    await buttons.nth(3).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'bloom');
+    await expect(buttons.nth(3)).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('the Privacy page says the theme choice is remembered in the browser', async ({ page }) => {
