@@ -9,6 +9,7 @@ import { BANDS, CHAPTERS, band, boot, dayTime, lessonArithmeticProblems, lessonP
 
 const KEY = 'sprouts:demo';
 const CHAPTER_KEY = 'demo-ch';
+const GARDEN_KEY = 'demo-garden'; // added 17 Nov with the growing garden
 
 test.beforeEach(() => { knownBug(); test.setTimeout(240_000); });
 
@@ -131,7 +132,7 @@ test('"Skip the lesson" goes straight to the questions; a chapter has ten questi
   await expect(page.locator('#q')).toHaveText('Chapter complete! 10 of 10 right first time.');
   await expect(page.locator('#msg')).toContainText('Next chapter: Taking away within 100');
   await expect(page.locator('#b1')).toHaveText('Next chapter');
-  await expect(page.locator('#b2')).toHaveText('Do this chapter again');
+  await expect(page.locator('#b2')).toHaveText('Play a mixed game instead'); // changed 17 Nov: the mixed game is offered after a passed chapter
 });
 
 test('passing needs 8 of 10 right first time: 8 passes and unlocks the next chapter; 7 does not and says nothing is lost', async ({ page }) => {
@@ -284,11 +285,11 @@ test('Exit goes back to the menu mid-chapter and keeps the points so far', async
   await expect(page.locator('#pts')).toHaveText('10');
 });
 
-test('progress is kept only in this browser (two keys), survives a reload, holds no personal data; no cookies or other storage', async ({ page, context }) => {
+test('progress is kept only in this browser (three keys), survives a reload, holds no personal data; no cookies or other storage', async ({ page, context }) => {
   await questions(page, '7-8');
   await playQuestions(page, '7-8');
   const s = await storedData(page, context);
-  expect(s.local.sort(), 'localStorage keys').toEqual([CHAPTER_KEY, KEY].sort());
+  expect(s.local.sort(), 'localStorage keys').toEqual([CHAPTER_KEY, GARDEN_KEY, KEY].sort());
   expect(s.cookies).toEqual([]);
   expect(s.session).toEqual([]);
   expect(s.databases).toEqual([]);
@@ -298,6 +299,9 @@ test('progress is kept only in this browser (two keys), survives a reload, holds
   expect(Object.keys(saved).sort()).toEqual(['lastDay', 'milestones', 'points', 'restDaysUsed', 'streak']); // no name, no text, no birth date
   const chapters = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), CHAPTER_KEY))!);
   expect(chapters).toEqual({ '7-8': 1 }); // only a band and how many chapters are done
+  const garden = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!);
+  expect(Object.keys(garden).sort(), 'the garden holds only a count of water drops and a day number').toEqual(['d', 'w']);
+  expect(garden.w).toBe(1);
   expect(saved.points).toBe(100);
   await page.reload();
   await expect(page.locator('#pts')).toHaveText('100');
@@ -338,6 +342,7 @@ test('Reset after confirming clears points, streak AND the chapters done, so the
 });
 
 test('a browser that blocks storage still works for the session (no crash)', async ({ page }) => {
+  await page.route('**/favicon.ico', (r) => r.fulfill({ status: 204 })); // the missing icon link is SCRUM-446
   const errors = watchErrors(page);
   await page.addInitScript(() => {
     Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } });
@@ -452,4 +457,88 @@ test('maths draft: "Hear it" speaks words, not symbols ("12 - 4" must not be rea
     }
   }
   expect([...new Set(problems)].slice(0, 20)).toEqual([]);
+});
+
+// ---------- stretch break and growing garden (draft of 17 Nov, commit 120f721) ----------
+
+/** Plays n questions right first time and moves on, without walking through the stretch break. */
+async function playRight(page: Page, n: number) {
+  for (let i = 0; i < n; i++) { await tap(page, rightAnswer(await snapshot(page))); await next(page); }
+}
+
+test('stretch break: appears once, after question 5 of 10, offers "I am ready" and "Skip the break", costs nothing and the chapter still has ten questions', async ({ page }) => {
+  await questions(page, '7-8');
+  await playRight(page, 5);
+  await expect(page.locator('#q')).toHaveText('Stretch break! Reach up high, then hop 5 times.');
+  await expect(page.locator('#msg')).toContainText('Halfway there');
+  const buttons = page.locator('#opts button');
+  expect((await buttons.allInnerTexts()).map((t) => t.trim())).toEqual(['I am ready', 'Skip the break']);
+  for (let i = 0; i < 2; i++) { const box = (await buttons.nth(i).boundingBox())!; expect(box.height, `button ${i} height`).toBeGreaterThanOrEqual(48); expect(box.width, `button ${i} width`).toBeGreaterThanOrEqual(48); }
+  const before = await points(page);
+  const label = await page.locator('#art').getAttribute('aria-hidden');
+  void label;
+  await buttons.nth(0).click();
+  await page.clock.runFor(1700);
+  expect(await points(page), 'a stretch break earns and costs nothing').toBe(before);
+  await expect(page.locator('#q')).not.toContainText('Stretch break');
+  const rest = await playQuestions(page, '7-8', { limit: 12 });
+  expect(rest, 'five questions after the break, and no second break').toHaveLength(5);
+  await expect(page.locator('#q')).toHaveText('Chapter complete! 10 of 10 right first time.');
+});
+
+test('stretch break: "Skip the break" goes straight on, and the break does not hide the progress bar', async ({ page }) => {
+  await questions(page, '7-8');
+  await playRight(page, 5);
+  await expect(page.locator('#q')).toContainText('Stretch break');
+  await expect(page.locator('#bar .seg')).toHaveCount(10);
+  expect(await page.locator('#bar .seg.done, #bar .seg.ok, #bar .seg.right').count() + (await page.locator('#bar .seg').evaluateAll((els) => els.filter((e) => !/now|miss/.test(e.className) && e.className !== 'seg').length)) , 'five segments show as done').toBeGreaterThanOrEqual(5);
+  await page.locator('#opts button', { hasText: 'Skip the break' }).click();
+  await page.clock.runFor(1700);
+  await expect(page.locator('#q')).not.toContainText('Stretch break');
+  expect((await snapshot(page)).options.length).toBeGreaterThan(1);
+});
+
+test('growing garden: a drop of water for each finished set, a flower for every four drops, and a bonus drop on a new day', async ({ page }) => {
+  await boot(page, { day: 300 });
+  await band(page, '5-6').click();
+  const finishAndNext = async (last = false) => {
+    await playQuestions(page, '5-6', { limit: 12 });
+    await expect(page.locator('#q')).toContainText('Chapter complete!');
+    if (!last) { await page.locator('#b1').click(); await lessonThenQuestions(page, true); }
+  };
+  const gardenLabel = () => page.locator('#msg .garden').getAttribute('aria-label');
+  await lessonThenQuestions(page, true);
+  await finishAndNext(true);
+  await expect(page.locator('#msg')).toContainText('A drop of water for your garden!');
+  expect(await gardenLabel()).toBe('Your garden: 0 flowers and one growing');
+  await page.locator('#b1').click(); await lessonThenQuestions(page, true);
+  await finishAndNext(true);
+  await page.locator('#b1').click(); await lessonThenQuestions(page, true);
+  await finishAndNext(true);
+  expect(await gardenLabel(), 'three drops: still growing').toBe('Your garden: 0 flowers and one growing');
+  await page.locator('#b1').click(); await lessonThenQuestions(page, true);
+  await finishAndNext(true);
+  expect(await gardenLabel(), 'four drops make a flower').toBe('Your garden: 1 flower');
+  expect(JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!).w).toBe(4);
+  // next day: "Welcome back" and two drops
+  await page.clock.setSystemTime(dayTime(301));
+  await page.locator('#b1').click(); await lessonThenQuestions(page, true);
+  await finishAndNext(true);
+  await expect(page.locator('#msg')).toContainText('Welcome back! Two drops of water for your garden today.');
+  expect(JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!).w, 'two drops on a new day').toBe(6);
+  expect(await gardenLabel()).toBe('Your garden: 1 flower and one growing');
+});
+
+test('growing garden: a set that is not passed does not take anything away from the garden', async ({ page }) => {
+  await questions(page, '7-8');
+  await playQuestions(page, '7-8');
+  const w1 = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!).w;
+  await openChapter(page, '7-8', 0); // do the same chapter again from the chapter list
+  await lessonThenQuestions(page, true);
+  await playQuestions(page, '7-8', { wrongFirst: 3 }); // 7 of 10: not passed
+  const w2 = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!).w;
+  expect(w2, 'the garden never shrinks').toBeGreaterThanOrEqual(w1);
+  // "No points are lost." is the page's own reassurance, so take it out before looking for loss words
+  const said = ((await page.locator('#msg').textContent()) ?? '').replace(/no points are lost/gi, '');
+  expect(said).not.toMatch(/lost|lose|wilt|died|dead/i);
 });

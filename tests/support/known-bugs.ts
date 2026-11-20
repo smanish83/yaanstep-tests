@@ -35,10 +35,6 @@ export const KNOWN_BUGS: KnownBug[] = [
     note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
   },
   {
-    jira: 'SCRUM-453', profile: 'both', title: /Reset after confirming clears points, streak AND the chapters done/,
-    note: 'maths draft: Reset clears points and streak but not the chapters already finished (key demo-ch)',
-  },
-  {
     jira: 'SCRUM-454', profile: 'both', title: /maths draft: (lesson|number question|picture question|end screen) view fits the screen and passes the accessibility scan/,
     note: 'maths draft: the Hear it button is named "Read it to me" but shows "Hear it" (WCAG 2.5.3 label in name)',
   },
@@ -49,6 +45,10 @@ export const KNOWN_BUGS: KnownBug[] = [
   {
     jira: 'SCRUM-449', profile: 'both', title: /"Hear it" speaks words, not symbols/,
     note: 'maths-draft.html sends the written symbols to the voice, so "12 - 4" is read as "12 by 4"',
+  },
+  {
+    jira: 'SCRUM-453', profile: 'both', title: /Reset after confirming clears points, streak AND the chapters done/,
+    note: 'maths draft: Reset clears points and streak but not the chapters already finished (key demo-ch)',
   },
   {
     jira: 'SCRUM-446', profile: 'both', title: /maths draft: has an icon link like the other pages/,

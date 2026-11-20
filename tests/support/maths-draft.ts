@@ -18,12 +18,12 @@ export const dayTime = (n: number) => new Date(DAY0 + n * 864e5 + 12 * 36e5); //
 export const CHAPTERS: Record<string, string[]> = {
   '3-4': ['Counting', 'One more', 'Which has more?', 'Odd one out', 'Fill the frame'],
   '5-6': ['Seeing 5 and 10 in blocks', 'Adding up to 5', 'Adding up to 10', 'Taking away within 10', 'Make 10', 'Adding up to 20', 'Taking away within 20', 'Bigger or smaller', 'Adding three numbers', 'Put in order', 'Coins: penny, nickel, dime, quarter', 'Counting pennies and dimes', "Clock: o'clock", 'Clock: half past'],
-  '7-8': ['Adding up to 100', 'Taking away within 100', 'Groups of 2, 5 and 10', 'Groups of 3 and 4', 'Sharing equally', 'Missing numbers'],
-  '9-10': ['Adding up to 1000', 'Taking away within 1000', 'Times tables to 12', 'Sharing and dividing', 'Missing numbers', 'Put in order'],
-  '11-12': ['Adding big numbers', 'Taking away big numbers', 'Multiplying bigger numbers', 'Dividing bigger numbers', 'Missing numbers', 'Put in order'],
+  '7-8': ['Adding up to 100', 'Taking away within 100', 'Groups of 2, 5 and 10', 'Groups of 3 and 4', 'Sharing equally', 'Missing numbers', 'Counting coins', 'Dollar notes: $1, $5, $10', 'Clock: quarter past and quarter to', 'Clock: five minutes at a time'],
+  '9-10': ['Adding up to 1000', 'Taking away within 1000', 'Times tables to 12', 'Sharing and dividing', 'Missing numbers', 'Put in order', 'Dollars and cents: notes', 'Making change', 'Clock: any minute'],
+  '11-12': ['Adding big numbers', 'Taking away big numbers', 'Multiplying bigger numbers', 'Dividing bigger numbers', 'Missing numbers', 'Put in order', 'Making change (bigger)', 'Clock: any minute', 'How long will it take?'],
 };
 
-export type Kind = 'add' | 'add3' | 'subtract' | 'multiply' | 'divide' | 'missing' | 'compare' | 'extreme' | 'count' | 'onemore' | 'more' | 'odd' | 'frame';
+export type Kind = 'coin' | 'coinmore' | 'money' | 'clock' | 'change' | 'duration' | 'add' | 'add3' | 'subtract' | 'multiply' | 'divide' | 'missing' | 'compare' | 'extreme' | 'count' | 'onemore' | 'more' | 'odd' | 'frame';
 
 /** Kinds that may turn up in free play, by band. */
 export const FREE_KINDS: Record<string, Kind[]> = {
@@ -40,6 +40,12 @@ export function kindOf(prompt: string): Kind {
   if (prompt === 'Which group has more? Tap it.') return 'more';
   if (prompt === 'Which one is different? Tap it.') return 'odd';
   if (/^Make \d+\. Tap the circles to fill the frame\.$/.test(prompt)) return 'frame';
+  if (prompt === 'What is this coin called?') return 'coin';
+  if (prompt === 'Which coin is worth more?') return 'coinmore';
+  if (prompt === 'How much money is this?') return 'money';
+  if (prompt === 'What time is it?') return 'clock';
+  if (/^You pay \$\d+ for something that costs \$\d+(\.\d\d)?\. How much change do you get\?$/.test(prompt)) return 'change';
+  if (/^A film starts at \d+:\d\d and lasts \d+ minutes\. When does it end\?$/.test(prompt)) return 'duration';
   if (/^\d+ \+ \d+ \+ \d+ = \?$/.test(prompt)) return 'add3';
   if (/^\d+ \+ \d+ = \?$/.test(prompt)) return 'add';
   if (/^\d+ - \d+ = \?$/.test(prompt)) return 'subtract';
@@ -79,11 +85,24 @@ export interface Snapshot {
   slots: number;                // "+1" slot buttons
   cells: number;                // ten-frame circles
   hop: { label: string; start: number } | null; // number-line hop game, if shown
+  coins: { text: string; width: number }[]; // coins drawn (the words written on each coin, and its drawn width)
+  price: string | null; // the price tag drawn next to the notes ("$1.05"), if shown
+  clock: { hourAngle: number; minuteAngle: number; hourLen: number; minuteLen: number } | null; // hands of the clock face, from the drawing
   artLabel: string;
   msg: string;
 }
 
+/** The mid-set stretch break (draft of 17 Nov): a screen between questions with "I am ready" and "Skip the break". Helpers walk through it
+ *  so the question tests do not see it; maths-draft.spec.ts has its own test for the break. */
+export async function passStretchBreak(page: Page): Promise<boolean> {
+  if (!(await page.locator('#q').innerText()).trim().startsWith('Stretch break!')) return false;
+  await page.locator('#opts button', { hasText: 'I am ready' }).click();
+  await page.clock.runFor(1700);
+  return true;
+}
+
 export async function snapshot(page: Page): Promise<Snapshot> {
+  await passStretchBreak(page);
   const raw = await page.evaluate(() => {
     const sig = (svg: Element | null) => {
       const el = svg?.firstElementChild;
@@ -103,6 +122,16 @@ export async function snapshot(page: Page): Promise<Snapshot> {
       slots: art.querySelectorAll('.slot').length,
       cells: art.querySelectorAll('button.cell').length,
       hop: document.getElementById('hop') && line ? { label: line.getAttribute('aria-label') ?? '', start: +(line.querySelector('.bead.here')?.textContent ?? -1) } : null,
+      coins: [...art.querySelectorAll('.money svg')].filter((v) => !(v.getAttribute('aria-label') ?? '').startsWith('Price ')).map((v) => ({ text: [...v.querySelectorAll('text')].map((t) => t.textContent!.trim()).join(' '), width: +(v.getAttribute('width') ?? 0) })),
+      price: (() => { const v = [...art.querySelectorAll('.money svg')].find((x) => (x.getAttribute('aria-label') ?? '').startsWith('Price ')); return v ? [...v.querySelectorAll('text')].map((t) => t.textContent!.trim()).join(' ') : null; })(),
+      clock: (() => {
+        const hands = [...art.querySelectorAll('.clockbox svg line')].filter((l) => l.getAttribute('x1') === '80' && l.getAttribute('y1') === '80');
+        if (hands.length !== 2) return null;
+        const f = (l: Element) => { const dx = +l.getAttribute('x2')! - 80, dy = 80 - +l.getAttribute('y2')!; return { a: ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360, len: Math.hypot(dx, dy) }; };
+        const [p, q] = hands.map(f);
+        const [hour, minute] = p.len < q.len ? [p, q] : [q, p];
+        return { hourAngle: hour.a, minuteAngle: minute.a, hourLen: hour.len, minuteLen: minute.len };
+      })(),
       artLabel: art.getAttribute('aria-label') ?? '',
       msg: document.getElementById('msg')!.textContent!.trim(),
     };
@@ -115,6 +144,35 @@ export async function snapshot(page: Page): Promise<Snapshot> {
   };
 }
 
+/** Coin name and value from the words written on the drawn coin (not from the page's own label). */
+export function coinFromText(text: string): { name: string; cents: number } | null {
+  const note = text.match(/^\$(\d+) .*PLAY MONEY$/);
+  if (note) return { name: `$${note[1]}`, cents: +note[1] * 100 };
+  if (text === 'ONE CENT') return { name: 'penny', cents: 1 };
+  if (text === 'FIVE CENTS') return { name: 'nickel', cents: 5 };
+  if (text === 'ONE DIME') return { name: 'dime', cents: 10 };
+  if (text === 'QUARTER DOLLAR') return { name: 'quarter', cents: 25 };
+  return null;
+}
+/** An amount of money in cents, written the way the page offers it: 65¢ below a dollar, $4 or $3.95 from a dollar up. */
+export function pickMoneyText(cents: number, options: string[]): string {
+  const forms = [`${cents}¢`, `$${(cents / 100).toFixed(2)}`, `$${cents / 100}`];
+  return forms.find((f) => options.includes(f)) ?? forms[cents < 100 ? 0 : 1];
+}
+export const COIN_VALUE: Record<string, number> = { penny: 1, nickel: 5, dime: 10, quarter: 25 };
+
+/** The time shown by the hands of a clock face, worked out from the angles. Null if the hands do not agree with each other. */
+export function timeFromHands(c: { hourAngle: number; minuteAngle: number }): { h: number; m: number; hourHandOff: number } {
+  const m = Math.round(c.minuteAngle / 6) % 60;
+  const hoursFloat = c.hourAngle / 30; // 0..12
+  const h = Math.round(hoursFloat - m / 60 + 12) % 12 || 12;
+  // how far the hour hand is from where it should be for h:m (it moves half a degree a minute)
+  const expected = ((h % 12) * 30 + m / 2) % 360;
+  const off = Math.abs(((c.hourAngle - expected + 540) % 360) - 180);
+  return { h, m, hourHandOff: off };
+}
+export const fmtTime = (t: { h: number; m: number }) => `${t.h}:${String(t.m).padStart(2, '0')}`;
+
 /** What the right tap is, from what is drawn. */
 export function rightAnswer(s: Snapshot): { text?: string; card?: number; pick?: number; cells?: number } {
   switch (s.kind) {
@@ -122,6 +180,12 @@ export function rightAnswer(s: Snapshot): { text?: string; card?: number; pick?:
     case 'onemore': return { text: String(s.groups[0] + 1) };
     case 'more': return { card: s.cards[0].n > s.cards[1].n ? 0 : 1 };
     case 'frame': return { cells: +s.prompt.match(/\d+/)![0] };
+    case 'coin': return { text: coinFromText(s.coins[0].text)!.name };
+    case 'coinmore': { const names = s.coins.map((c) => coinFromText(c.text)!.name); return { text: names.reduce((a, b) => (COIN_VALUE[a] >= COIN_VALUE[b] ? a : b)) }; }
+    case 'money': return { text: pickMoneyText(s.coins.reduce((sum, c) => sum + coinFromText(c.text)!.cents, 0), s.options) };
+    case 'change': { const paid = coinFromText(s.coins[0].text)!.cents; const price = Math.round(parseFloat(s.price!.replace('$', '')) * 100); return { text: pickMoneyText(paid - price, s.options) }; }
+    case 'duration': { const m = s.prompt.match(/starts at (\d+):(\d\d) and lasts (\d+) minutes/)!; const t = ((+m[1] % 12) * 60 + +m[2] + +m[3]) % 720; return { text: `${Math.floor(t / 60) || 12}:${String(t % 60).padStart(2, '0')}` }; }
+    case 'clock': return { text: fmtTime(timeFromHands(s.clock!)) };
     case 'odd': {
       const counts = new Map<string, number>();
       s.picks.forEach((p) => counts.set(p.shape, (counts.get(p.shape) ?? 0) + 1));
@@ -155,7 +219,31 @@ export function chapterProblems(title: string, band: string, s: Snapshot): strin
   const bad = (m: string) => out.push(`chapter "${title}" (ages ${band}): ${s.kind} "${s.prompt}": ${m}`);
   const pictureChapter: Record<string, Kind> = { Counting: 'count', 'One more': 'onemore', 'Which has more?': 'more', 'Odd one out': 'odd', 'Fill the frame': 'frame' };
   if (pictureChapter[title]) { if (s.kind !== pictureChapter[title]) bad(`expected a ${pictureChapter[title]} question`); return out; }
-  if (s.kind === 'frame' || ['count', 'onemore', 'more', 'odd'].includes(s.kind)) { bad('a picture question in a number chapter'); return out; }
+  if (title === 'Coins: penny, nickel, dime, quarter') { if (!['coin', 'coinmore'].includes(s.kind)) bad('expected a coin-name or which-coin-is-worth-more question'); return out; }
+  if (title === 'Counting coins') { if (s.kind !== 'money') bad('expected a how-much-money question'); else if (s.coins.some((c) => !c.text.match(/CENT|DIME|QUARTER/))) bad('a note in a coin chapter'); return out; }
+  if (/^Dollar notes: |^Dollars and cents: notes$/.test(title)) {
+    const allowed = title.startsWith('Dollar notes') ? [1, 5, 10] : [1, 5, 10, 20];
+    if (s.kind !== 'money') bad('expected a how-much-money question');
+    else if (s.coins.some((c) => { const n = coinFromText(c.text); return !n || !n.name.startsWith('$') || !allowed.includes(n.cents / 100); })) bad(`a note outside $${allowed.join(', $')}: ${JSON.stringify(s.coins.map((c) => c.text))}`);
+    return out;
+  }
+  if (/^Making change/.test(title)) { if (s.kind !== 'change') bad('expected a change question'); return out; }
+  if (title === 'How long will it take?') { if (s.kind !== 'duration') bad('expected a how-long question'); return out; }
+  if (title === 'Counting pennies and dimes') {
+    if (s.kind !== 'money') bad('expected a how-much-money question');
+    else if (s.coins.some((c) => !['ONE CENT', 'ONE DIME'].includes(c.text))) bad(`a coin other than a penny or dime: ${JSON.stringify(s.coins.map((c) => c.text))}`);
+    return out;
+  }
+  if (/^Clock: /.test(title)) {
+    if (s.kind !== 'clock') bad('expected a what-time-is-it question');
+    else if (s.clock) {
+      const t = timeFromHands(s.clock);
+      const ok = title === "Clock: o'clock" ? t.m === 0 : title === 'Clock: half past' ? t.m === 0 || t.m === 30 : title === 'Clock: quarter past and quarter to' ? t.m % 15 === 0 : title === 'Clock: five minutes at a time' ? t.m % 5 === 0 : true;
+      if (!ok) bad(`the clock shows ${fmtTime(t)}, outside what this chapter teaches`);
+    }
+    return out;
+  }
+  if (s.kind === 'frame' || ['count', 'onemore', 'more', 'odd', 'coin', 'coinmore', 'money', 'clock'].includes(s.kind)) { bad('a picture question in a number chapter'); return out; }
   const nums = (s.prompt.match(/\d+/g) ?? []).map(Number);
   const need = (k: Kind) => { if (s.kind !== k) bad(`expected a ${k} question`); };
   let m: RegExpMatchArray | null;
@@ -188,18 +276,97 @@ export function problemsWith(s: Snapshot, band: string, allowed?: Kind[]): strin
   const out: string[] = [];
   const bad = (m: string) => out.push(`${s.kind} "${s.prompt}": ${m}`);
   if (/undefined|NaN|null/.test(s.prompt)) bad('the question text contains undefined/NaN/null');
-  const numeric = !['count', 'onemore', 'more', 'odd', 'frame'].includes(s.kind);
+  const special = ['coin', 'coinmore', 'money', 'clock', 'change', 'duration'].includes(s.kind);
+  const numeric = !['count', 'onemore', 'more', 'odd', 'frame'].includes(s.kind) && !special;
   const nums = (s.prompt.match(/\d+/g) ?? []).map(Number);
   if (allowed && !allowed.includes(s.kind)) bad(`kind ${s.kind} is not planned here`);
 
   if (s.kind === 'more' || s.kind === 'odd' || s.kind === 'frame') {
     if (s.options.length) bad(`has answer buttons ${JSON.stringify(s.options)} as well as the tappable picture`);
+  } else if (['coin', 'coinmore', 'money', 'clock', 'change', 'duration'].includes(s.kind)) {
+    // money and clock questions have their own option rules (below)
   } else {
     if (s.options.length !== 4) bad(`has ${s.options.length} choices, expected 4: ${JSON.stringify(s.options)}`);
     if (new Set(s.options).size !== s.options.length) bad(`has repeated choices ${JSON.stringify(s.options)}`);
     if (!s.options.every((o) => /^\d+$/.test(o))) bad(`has a choice that is not a whole number ${JSON.stringify(s.options)}`);
   }
 
+  if (special) {
+    if (new Set(s.options).size !== s.options.length) bad(`has repeated choices ${JSON.stringify(s.options)}`);
+    if (s.options.length < 2) bad(`has fewer than 2 choices ${JSON.stringify(s.options)}`);
+    if (s.kind === 'coin' || s.kind === 'coinmore' || s.kind === 'money' || s.kind === 'change') {
+      const known = s.coins.map((c) => coinFromText(c.text));
+      if (known.some((c) => !c)) bad(`a coin has unknown words on it: ${JSON.stringify(s.coins.map((c) => c.text))}`);
+      else {
+        // real coins: dime smallest, then penny, nickel, quarter (the drawn sizes should keep that order)
+        const size = (n: string) => s.coins.find((c) => coinFromText(c.text)!.name === n)?.width;
+        const order = ['dime', 'penny', 'nickel', 'quarter'].map(size).filter((w) => w !== undefined) as number[];
+        if (order.some((w, i) => i > 0 && w <= order[i - 1])) bad(`coin sizes are not in real-life order (dime < penny < nickel < quarter): ${JSON.stringify(s.coins)}`);
+        const names = known.map((c) => c!.name);
+        if (s.artLabel === '') bad('the coins have no description for a screen reader');
+        const label = s.artLabel;
+        if (s.kind === 'coin') {
+          if (s.coins.length !== 1) bad(`expected one coin, found ${s.coins.length}`);
+          if (JSON.stringify([...s.options].sort()) !== JSON.stringify(['dime', 'nickel', 'penny', 'quarter'])) bad(`choices should be the four coin names, got ${JSON.stringify(s.options)}`);
+          if (label !== `A coin worth ${known[0]!.cents}¢`) bad(`the description "${label}" does not match the coin drawn (${known[0]!.cents}¢)`);
+        } else if (s.kind === 'coinmore') {
+          if (s.coins.length !== 2) bad(`expected two coins, found ${s.coins.length}`);
+          if (new Set(names).size !== 2) bad(`both coins are the same: ${names}`);
+          if (JSON.stringify([...s.options].sort()) !== JSON.stringify([...names].sort())) bad(`choices ${JSON.stringify(s.options)} are not the two coins drawn ${JSON.stringify(names)}`);
+        } else if (s.kind === 'money') {
+          const total = known.reduce((a, c) => a + c!.cents, 0);
+          const notes = names.filter((n) => n.startsWith('$')).length;
+          if (notes !== 0 && notes !== names.length) bad(`coins and notes are mixed: ${names}`);
+          if (s.coins.length < 2 || s.coins.length > 8) bad(`${s.coins.length} items is outside 2 to 8`);
+          const want = pickMoneyText(total, s.options);
+          if (!s.options.includes(want)) bad(`the total (${want}) is not among the choices ${JSON.stringify(s.options)}`);
+          if (s.options.length !== 4) bad(`expected 4 choices, found ${JSON.stringify(s.options)}`);
+          if (!s.options.every((o) => /^(\d+¢|\$\d+(\.\d\d)?)$/.test(o))) bad(`a choice is not written as N¢ or $N: ${JSON.stringify(s.options)}`);
+          if (label !== `${notes ? 'Notes' : 'Coins'}: ${names.join(', ')}`) bad(`the description "${label}" does not match what is drawn (${names.join(', ')})`);
+        } else {
+          // change: one note and a price tag
+          if (s.coins.length !== 1 || !names[0].startsWith('$')) bad(`expected one play note, found ${JSON.stringify(names)}`);
+          else if (!s.price) bad('no price tag is drawn');
+          else {
+            const paid = known[0]!.cents, price = Math.round(parseFloat(s.price.replace('$', '')) * 100);
+            const m = s.prompt.match(/^You pay \$(\d+) for something that costs \$(\d+(?:\.\d\d)?)\./)!;
+            if (+m[1] * 100 !== paid) bad(`the words say you pay $${m[1]} but the note drawn is ${names[0]}`);
+            if (Math.round(parseFloat(m[2]) * 100) !== price) bad(`the words say it costs $${m[2]} but the price tag shows ${s.price}`);
+            if (price >= paid) bad(`the price ${s.price} is not less than what is paid (${names[0]})`);
+            if (label !== `Price tag ${s.price}, paying with ${names[0]}`) bad(`the description "${label}" does not match the picture (${s.price}, ${names[0]})`);
+            const want = pickMoneyText(paid - price, s.options);
+            if (!s.options.includes(want)) bad(`the change (${want}) is not among the choices ${JSON.stringify(s.options)}`);
+            if (s.options.length !== 4) bad(`expected 4 choices, found ${JSON.stringify(s.options)}`);
+            if (!s.options.every((o) => /^(\d+¢|\$\d+(\.\d\d)?)$/.test(o))) bad(`a choice is not written as N¢ or $N.NN: ${JSON.stringify(s.options)}`);
+            if (s.options.some((o) => o !== want && pickMoneyText(paid - price, [o]) === o && false)) bad('unreachable');
+          }
+        }
+      }
+    }
+    if (s.kind === 'duration') {
+      const m = s.prompt.match(/starts at (\d+):(\d\d) and lasts (\d+) minutes/)!;
+      const want = rightAnswer(s).text!;
+      if (!s.options.includes(want)) bad(`the end time ${want} is not among the choices ${JSON.stringify(s.options)}`);
+      if (s.options.length !== 4) bad(`expected 4 choices, found ${JSON.stringify(s.options)}`);
+      if (!s.options.every((o) => /^(1[0-2]|[1-9]):[0-5]\d$/.test(o))) bad(`a choice is not a clock time: ${JSON.stringify(s.options)}`);
+      if (!s.clock) bad('no clock is drawn for the start time');
+      else if (fmtTime(timeFromHands(s.clock)) !== `${+m[1]}:${m[2]}`) bad(`the clock shows ${fmtTime(timeFromHands(s.clock))} but the words say the film starts at ${m[1]}:${m[2]}`);
+      if (s.artLabel !== `Clock showing ${+m[1]}:${m[2]}`) bad(`the description "${s.artLabel}" does not match the start time ${m[1]}:${m[2]}`);
+    }
+    if (s.kind === 'clock') {
+      if (!s.clock) bad('no clock hands found in the picture');
+      else {
+        const t = timeFromHands(s.clock);
+        if (s.clock.hourLen >= s.clock.minuteLen - 5) bad(`the hour hand (${s.clock.hourLen.toFixed(0)}) is not clearly shorter than the minute hand (${s.clock.minuteLen.toFixed(0)})`);
+        if (t.hourHandOff > 3) bad(`the hour hand is ${t.hourHandOff.toFixed(1)} degrees away from where it should be at ${fmtTime(t)}`);
+        if (Math.abs(s.clock.minuteAngle - Math.round(s.clock.minuteAngle / 6) * 6) > 1.5) bad(`the minute hand is not on a minute mark (${s.clock.minuteAngle.toFixed(1)} degrees)`);
+        if (s.artLabel !== `Clock face showing ${fmtTime(t)}`) bad(`the description "${s.artLabel}" does not match the hands (${fmtTime(t)})`);
+        if (!s.options.includes(fmtTime(t))) bad(`the time ${fmtTime(t)} is not among the choices ${JSON.stringify(s.options)}`);
+        if (s.options.length !== 4) bad(`expected 4 choices, found ${JSON.stringify(s.options)}`);
+        if (!s.options.every((o) => /^(1[0-2]|[1-9]):[0-5]\d$/.test(o))) bad(`a choice is not a clock time: ${JSON.stringify(s.options)}`);
+      }
+    }
+  }
   if (numeric) {
     if (band === '3-4') bad('ages 3 to 4 got a number-only question');
     const right = String(answerFromPrompt(s.prompt));
@@ -335,6 +502,7 @@ export async function playQuestions(page: Page, band: string, opts: { wrongFirst
     await tap(page, rightAnswer(s));
     await expect(page.locator('#msg')).toContainText(/Good job!|Great work!|Well done!|Super!|Brilliant!|You got it!/);
     await next(page);
+    await passStretchBreak(page); // the break between questions also uses the "endbtns" row, so it must be walked through first
     if ((await page.locator('#opts.endbtns').count()) > 0) return seen; // the chapter end screen
   }
   return seen;
