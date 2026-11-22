@@ -81,7 +81,11 @@ for (const age of Object.keys(FITS).map(Number)) {
       await expect(page.locator('#ys-showall')).toHaveText(`Only age ${age}`);
       await page.locator('#ys-showall').click();
       expect(await visibleGames(page)).toEqual(FITS[age]);
+    } else if (age >= 6) {
+      // Every game fits, but the Same and different lesson (ages 3 to 4) is hidden, so the bar still shows.
+      await expect(page.locator('#ys-filter-text')).toHaveText(`Showing what fits age ${age}.`);
     } else {
+      // Age 5: every game fits and neither lesson card fits, so nothing is hidden and there is no bar.
       await expect(page.locator('#ys-filter')).toHaveCount(0);
     }
   });

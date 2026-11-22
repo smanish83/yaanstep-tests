@@ -103,8 +103,9 @@ async function playOne(page: Page, problems: string[], band: string) {
   // Every sentence read: the bars now match the problem, and equal values are drawn the same length.
   const b = await bars(page);
   if (JSON.stringify(b.lens) !== JSON.stringify(want.lens)) problems.push(`"${text}": bars are ${JSON.stringify(b.lens)}, expected ${JSON.stringify(want.lens)}`);
-  const scale = b.segs.map((s) => s.w / s.v);
-  if (Math.max(...scale) - Math.min(...scale) > 0.01) problems.push(`"${text}": bars are not drawn to the same scale`);
+  // Widths are rounded to 0.1 px, so each part may be off by up to 0.05 px from its exact size.
+  const px = b.segs.reduce((t, s) => t + s.w, 0) / b.segs.reduce((t, s) => t + s.v, 0);
+  if (b.segs.some((s) => Math.abs(s.w - s.v * px) > 0.1)) problems.push(`"${text}": bars are not drawn to the same scale`);
   expect(b.q).toEqual([]);
 
   await page.locator('#go').click();
@@ -241,7 +242,8 @@ for (const view of ['menu', 'bars', 'question mark', 'work it out'] as const) {
       if (view !== 'menu') {
         await page.locator('#band-11-12').click();
         const facts = (await page.locator('#problem .sent').count()) - 1;
-        const steps = view === 'bars' ? 3 + facts : 3 + facts + 1;
+        // From the first step: 2 clicks reach the bars, one more per sentence, one more reaches the question mark.
+        const steps = view === 'bars' ? 2 + facts : 3 + facts;
         for (let i = 0; i < steps; i++) await page.locator('#go').click();
         if (view === 'work it out') {
           const want = solve((await page.locator('#problem').innerText()).trim())!;
