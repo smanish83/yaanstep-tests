@@ -18,8 +18,8 @@ export const dayTime = (n: number) => new Date(DAY0 + n * 864e5 + 12 * 36e5); //
 export const CHAPTERS: Record<string, string[]> = {
   '3-4': ['Counting', 'One more', 'Which has more?', 'Odd one out', 'Fill the frame'],
   '5-6': ['Seeing 5 and 10 in blocks', 'Adding up to 5', 'Adding up to 10', 'Taking away within 10', 'Make 10', 'Adding up to 20', 'Taking away within 20', 'Bigger or smaller', 'Adding three numbers', 'Put in order', 'Coins: penny, nickel, dime, quarter', 'Counting pennies and dimes', "Clock: o'clock", 'Clock: half past'],
-  '7-8': ['Adding up to 100', 'Taking away within 100', 'Groups of 2, 5 and 10', 'Groups of 3 and 4', 'Sharing equally', 'Missing numbers', 'Counting coins', 'Dollar notes: $1, $5, $10', 'Clock: quarter past and quarter to', 'Clock: five minutes at a time'],
-  '9-10': ['Adding up to 1000', 'Taking away within 1000', 'Times tables to 12', 'Sharing and dividing', 'Missing numbers', 'Put in order', 'Dollars and cents: notes', 'Making change', 'Clock: any minute'],
+  '7-8': ['Adding up to 100', 'Taking away within 100', 'Groups of 2, 5 and 10', 'Groups of 3 and 4', 'Sharing equally', 'Missing numbers', 'Counting coins', 'Dollar bills: $1, $5, $10', 'Clock: quarter past and quarter to', 'Clock: five minutes at a time'],
+  '9-10': ['Adding up to 1000', 'Taking away within 1000', 'Times tables to 12', 'Sharing and dividing', 'Missing numbers', 'Put in order', 'Dollar bills: $1 to $20', 'Making change', 'Clock: any minute'],
   '11-12': ['Adding big numbers', 'Taking away big numbers', 'Multiplying bigger numbers', 'Dividing bigger numbers', 'Missing numbers', 'Put in order', 'Making change (bigger)', 'Clock: any minute', 'How long will it take?'],
 };
 
@@ -172,6 +172,15 @@ export function timeFromHands(c: { hourAngle: number; minuteAngle: number }): { 
   return { h, m, hourHandOff: off };
 }
 export const fmtTime = (t: { h: number; m: number }) => `${t.h}:${String(t.m).padStart(2, '0')}`;
+/** What a screen reader hears for a clock question: where the hands are, never the time itself (SCRUM-476). */
+export function clockWords(t: { h: number; m: number }): string {
+  const next = t.h === 12 ? 1 : t.h + 1;
+  const short = t.m === 0 ? `points to ${t.h}` : `is between ${t.h} and ${next}`;
+  const past = t.m % 5;
+  const mark = Math.floor(t.m / 5) || 12;
+  const long = past === 0 ? `points to ${t.m === 0 ? 12 : t.m / 5}` : `is ${past} small line${past === 1 ? '' : 's'} past the ${mark}`;
+  return `Clock face. The short hand ${short}. The long hand ${long}.`;
+}
 
 /** What the right tap is, from what is drawn. */
 export function rightAnswer(s: Snapshot): { text?: string; card?: number; pick?: number; cells?: number } {
@@ -221,8 +230,8 @@ export function chapterProblems(title: string, band: string, s: Snapshot): strin
   if (pictureChapter[title]) { if (s.kind !== pictureChapter[title]) bad(`expected a ${pictureChapter[title]} question`); return out; }
   if (title === 'Coins: penny, nickel, dime, quarter') { if (!['coin', 'coinmore'].includes(s.kind)) bad('expected a coin-name or which-coin-is-worth-more question'); return out; }
   if (title === 'Counting coins') { if (s.kind !== 'money') bad('expected a how-much-money question'); else if (s.coins.some((c) => !c.text.match(/CENT|DIME|QUARTER/))) bad('a note in a coin chapter'); return out; }
-  if (/^Dollar notes: |^Dollars and cents: notes$/.test(title)) {
-    const allowed = title.startsWith('Dollar notes') ? [1, 5, 10] : [1, 5, 10, 20];
+  if (/^Dollar bills: /.test(title)) {
+    const allowed = title === 'Dollar bills: $1, $5, $10' ? [1, 5, 10] : [1, 5, 10, 20];
     if (s.kind !== 'money') bad('expected a how-much-money question');
     else if (s.coins.some((c) => { const n = coinFromText(c.text); return !n || !n.name.startsWith('$') || !allowed.includes(n.cents / 100); })) bad(`a note outside $${allowed.join(', $')}: ${JSON.stringify(s.coins.map((c) => c.text))}`);
     return out;
@@ -327,7 +336,7 @@ export function problemsWith(s: Snapshot, band: string, allowed?: Kind[]): strin
           if (label !== `${notes ? 'Notes' : 'Coins'}: ${names.join(', ')}`) bad(`the description "${label}" does not match what is drawn (${names.join(', ')})`);
         } else {
           // change: one note and a price tag
-          if (s.coins.length !== 1 || !names[0].startsWith('$')) bad(`expected one play note, found ${JSON.stringify(names)}`);
+          if (s.coins.length !== 1 || !names[0].startsWith('$')) bad(`expected one play bill, found ${JSON.stringify(names)}`);
           else if (!s.price) bad('no price tag is drawn');
           else {
             const paid = known[0]!.cents, price = Math.round(parseFloat(s.price.replace('$', '')) * 100);
@@ -362,7 +371,8 @@ export function problemsWith(s: Snapshot, band: string, allowed?: Kind[]): strin
         if (s.clock.hourLen >= s.clock.minuteLen - 5) bad(`the hour hand (${s.clock.hourLen.toFixed(0)}) is not clearly shorter than the minute hand (${s.clock.minuteLen.toFixed(0)})`);
         if (t.hourHandOff > 3) bad(`the hour hand is ${t.hourHandOff.toFixed(1)} degrees away from where it should be at ${fmtTime(t)}`);
         if (Math.abs(s.clock.minuteAngle - Math.round(s.clock.minuteAngle / 6) * 6) > 1.5) bad(`the minute hand is not on a minute mark (${s.clock.minuteAngle.toFixed(1)} degrees)`);
-        if (s.artLabel !== `Clock face showing ${fmtTime(t)}`) bad(`the description "${s.artLabel}" does not match the hands (${fmtTime(t)})`);
+        if (s.artLabel !== clockWords(t)) bad(`the description "${s.artLabel}" does not match the hands (${fmtTime(t)}); expected "${clockWords(t)}"`);
+        if (/\d:\d\d/.test(s.artLabel)) bad(`the description gives the answer away: "${s.artLabel}"`);
         if (!s.options.includes(fmtTime(t))) bad(`the time ${fmtTime(t)} is not among the choices ${JSON.stringify(s.options)}`);
         if (s.options.length !== 4) bad(`expected 4 choices, found ${JSON.stringify(s.options)}`);
         if (!s.options.every((o) => /^(1[0-2]|[1-9]):[0-5]\d$/.test(o))) bad(`a choice is not a clock time: ${JSON.stringify(s.options)}`);
