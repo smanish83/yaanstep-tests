@@ -125,6 +125,77 @@ test('a book opens on its cover with credits, reads page by page with the read-a
   await expect(first).toBeFocused();
 });
 
+// Reading the whole story aloud (Manish 22 Nov 2026): pages turn by themselves, reading can be paused, and the
+// speed is slower for younger children. The fake voice "finishes" each page a moment after it starts, unless held.
+const AUTO_VOICE = FAKE_VOICE + `
+  window.YS_TURN_MS = 0; window.__rates = [];
+  const say = window.speechSynthesis.speak;
+  window.speechSynthesis.speak = (u) => { say(u); window.__rates.push(u.rate); if (!window.__hold) setTimeout(() => u.onend && u.onend(), 20); };`;
+
+async function openFirstBook(page: Page, age?: number): Promise<Book> {
+  await page.addInitScript(AUTO_VOICE);
+  await page.goto('/library.html');
+  if (age) {
+    await page.evaluate((a) => localStorage.setItem('ys-profile', JSON.stringify({ age: a, color: 0, nick: '' })), age);
+    await page.reload();
+  }
+  const first = page.locator('#shelf .bookbtn').first();
+  const id = await first.getAttribute('data-id');
+  await first.click();
+  return (await page.request.get(`/stories/books/${id}.json`)).json();
+}
+
+test('"Read the whole story to me" reads every page and turns the pages by itself, then ends on the credits', async ({ page }) => {
+  const errors = watchErrors(page);
+  const b = await openFirstBook(page);
+  await expect(page.locator('#readall')).toBeVisible();
+  await expect(page.locator('#rspeed')).toHaveValue('0.8');
+  await page.locator('#readall').click();
+  await expect(page.locator('#ltheend')).toHaveText('The end.', { timeout: 15000 });
+  await expect(page.locator('#lagain')).toBeFocused();
+  const said = await page.evaluate(() => (window as any).__said as string[]);
+  expect(said).toEqual(b.pages.map((p) => p.text));
+  expect(errors).toEqual([]);
+});
+
+test('reading aloud can be paused and started again, and the next button still works while it reads', async ({ page }) => {
+  const b = await openFirstBook(page);
+  test.skip(b.pages.length < 3, 'needs a book of 3 pages or more');
+  await page.evaluate(() => { (window as any).__hold = true; });
+  await page.locator('#readall').click();
+  await expect(page.locator('#rcount')).toHaveText(`Page 1 of ${b.pages.length}`);
+  await expect(page.locator('#pauseread')).toBeFocused();
+  await expect(page.locator('#readall')).toBeHidden();
+  await expect(page.locator('#readit')).toBeHidden();
+  await page.locator('#rnext').click();
+  await expect(page.locator('#rcount')).toHaveText(`Page 2 of ${b.pages.length}`);
+  expect(await page.evaluate(() => (window as any).__said.at(-1))).toBe(b.pages[1].text);
+  await page.locator('#pauseread').click();
+  await expect(page.locator('#readall')).toBeFocused();
+  await expect(page.locator('#pauseread')).toBeHidden();
+  await expect(page.locator('#readit')).toBeVisible();
+  await page.evaluate(() => { (window as any).__hold = false; const u = (window as any).__u; u.onend && u.onend(); });
+  await expect(page.locator('#rcount')).toHaveText(`Page 2 of ${b.pages.length}`);
+  expect(await axeViolations(page)).toEqual([]);
+});
+
+for (const [age, want, name] of [[0, '0.8', 'Gentle'], [4, '0.7', 'Slow'], [6, '0.8', 'Gentle'], [9, '0.95', 'Normal']] as const) {
+  test(`the reading speed starts at ${name} for ${age ? `a child of ${age}` : 'no profile'}, and can be changed`, async ({ page }) => {
+    await openFirstBook(page, age || undefined);
+    await expect(page.locator('#rspeed')).toHaveValue(want);
+    await expect(page.locator('#rspeed option:checked')).toHaveText(name);
+    await page.evaluate(() => { (window as any).__hold = true; });
+    await page.locator('#readall').click();
+    await expect.poll(() => page.evaluate(() => (window as any).__rates.at(-1))).toBe(+want);
+    await page.locator('#rspeed').selectOption('0.6');
+    await expect.poll(() => page.evaluate(() => (window as any).__rates.at(-1))).toBe(0.6);
+    for (const b of await page.locator('#reader button:visible, #rspeed').all()) {
+      const box = (await b.boundingBox())!;
+      expect(box.height, await b.innerText()).toBeGreaterThanOrEqual(47.5);
+    }
+  });
+}
+
 test('stores nothing, and the Yaanstep Sprouts page links to the library', async ({ page }) => {
   await page.goto('/library.html');
   await page.locator('#shelf .bookbtn').first().click();
