@@ -31,6 +31,7 @@ npm run test:report                        # open the full HTML report
 | `tests/website/learning.spec.ts` | Learning page: 18,000 generated story questions and 18,000 number cards checked against an answer worked out separately; both games played to the end by tap, keyboard and mouse drag; all five maths styles; mistake hints in order (words, then dots); lesson steps; Keep going; game mode and Exit; focus and screen-reader hooks; layout and axe scan in every game view; nothing stored or sent. |
 | `tests/website/at-home.spec.ts` | Reading games at home (parents' page): the sixteen games with ages and what you need, safety rules first, only the reading-step words, no claims, linked from Learning and Reading, no errors, nothing stored or sent, 320 px, axe scan. |
 | `tests/website/themes.spec.ts` | Theme switcher: four themes, remembered without a cookie. |
+| `tests/website/teens.spec.ts` | Yaanstep Teens planner (SCRUM-500): countdown wording at every boundary, event type and subject from the title, study plans for a test 0 to 20 days away, repeats and daylight saving, adding a maths test and its preparation plan, live countdowns with a controlled clock, day page to-dos and note, weekly class, delete, one storage key only, nothing sent, 320 px and axe scan. |
 
 Screen sizes: desktop (1280 px), phone (Pixel 7 size), and tablet (820 px) for layout and the Learning games.
 
