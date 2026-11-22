@@ -189,6 +189,35 @@ test('a wrong answer only says "Not yet" and waits: nothing moves on by itself',
   await expect(page.locator('#go')).toBeHidden();
 });
 
+for (const g of GAMES) {
+  test(`${g.title}: after a miss, "Show me how" opens a short moving lesson on a different example (SCRUM-495)`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await open(page);
+    await page.locator(`#play-${g.id}`).click();
+    await expect(page.locator('#howbtn')).toHaveCount(0);
+    for (let i = 0; i < 3 && (await page.locator('#hop').count()); i++) await page.locator('#hop').click();
+    const r = await page.evaluate(() => (window as any).YS_BONDS.current());
+    const wrong = (await page.locator('#choices button').evaluateAll((bs) => bs.map((b) => Number(b.getAttribute('data-v'))))).find((v) => v !== r.ans)!;
+    await page.locator(`#choices button[data-v="${wrong}"]`).click();
+    await page.locator('#howbtn').click();
+    const lesson = page.locator('#lesson');
+    await expect(lesson.locator('h3')).toBeFocused();
+    await expect(lesson.locator('svg[role=img]')).toHaveAttribute('aria-label', /one at a time/);
+    const said = await page.locator('#lesson-say').innerText();
+    expect(said, 'the lesson must not give this answer away').not.toMatch(new RegExp(`(=|make|lands on) ${r.ans}\\.`));
+    // With reduced motion the last picture shows at once: nothing is left hidden.
+    const hidden = await lesson.locator('svg .mv-in').evaluateAll((es) => es.filter((e) => getComputedStyle(e).opacity !== '1').length);
+    expect(hidden).toBe(0);
+    await lesson.locator('#watch-again').click();
+    await expect(lesson.locator('svg')).toHaveCount(1);
+    expect(await axeViolations(page, '#game')).toEqual([]);
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+    await page.locator(`#choices button[data-v="${r.ans}"]`).click();
+    await expect(page.locator('#lesson')).toHaveCount(0);
+    await expect(page.locator('#go')).toBeVisible();
+  });
+}
+
 test('every button is at least 48 by 48 px', async ({ page }) => {
   await open(page);
   const check = async () => {
