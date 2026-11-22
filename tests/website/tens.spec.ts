@@ -11,7 +11,7 @@ test.beforeEach(() => { knownBug(); });
 const GAMES = [
   { id: 'read', title: 'How many?' },
   { id: 'build', title: 'Build the number' },
-  { id: 'compare', title: 'Which is more?' },
+  { id: 'compare', title: 'More or less?' },
 ] as const;
 
 const pl = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;

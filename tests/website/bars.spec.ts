@@ -188,6 +188,14 @@ test('every problem kind is worked out right in 2,000 fresh problems, straight f
   expect(bad).toEqual([]);
 });
 
+test('before the first bar, the model box is short and says where the bars will go', async ({ page }) => {
+  await page.goto('/bar-models.html');
+  await page.locator('#band-7-8').click();
+  await expect(page.locator('#model svg')).toHaveAttribute('aria-label', 'Bar model. No bars yet.');
+  await expect(page.locator('#model')).toContainText('The bars will appear here.');
+  expect((await page.locator('#model').boundingBox())!.height).toBeLessThan(120);
+});
+
 test('a wrong answer says "Not yet" and waits; nothing moves on by itself', async ({ page }) => {
   await page.clock.install();
   await page.goto('/bar-models.html');
