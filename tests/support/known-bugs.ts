@@ -18,10 +18,6 @@ export const KNOWN_BUGS: KnownBug[] = [
     jira: 'SCRUM-418', profile: 'live', title: /^page [\w-]+ › accessibility scan/,
     note: 'footer links have contrast 4.34:1 (AA needs 4.5:1) on every page; fix exists but is not published',
   },
-  {
-    jira: 'SCRUM-420', profile: 'both', title: /How it works: example steps are approved steps/,
-    note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
-  },
 ];
 
 /** Call at the top of a test body. */

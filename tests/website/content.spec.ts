@@ -106,6 +106,19 @@ test.describe('accessibility page', () => {
   });
 });
 
+test('site wording matches the decisions in SCRUM-420: web first, no 60-second promise, no Android-only lines', async ({ page }) => {
+  await page.goto(url('index'));
+  await expect(page.locator('main')).not.toContainText('Android only');
+  await expect(page.locator('main')).not.toContainText('Google Play');
+  await page.goto(url('how-it-works'));
+  await expect(page.locator('main')).not.toContainText('60 seconds');
+  await expect(page.locator('main')).toContainText('10-second countdown');
+  await page.goto(url('accessibility'));
+  await expect(page.locator('main')).toContainText('automated accessibility scan runs on every page');
+  await page.goto(url('testers'));
+  await expect(page.locator('main')).toContainText('web app first');
+});
+
 test('How it works: example steps are approved steps', async ({ page }) => {
   knownBug();
   await page.goto(url('how-it-works'));

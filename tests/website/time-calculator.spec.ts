@@ -32,6 +32,8 @@ const CASES = [
   { h: '24', back: '60', yearHours: '8,760', yearDays: '548', backHours: '365', backDays: '23', warn: false },
   { h: '0.5', back: '60', yearHours: '183', yearDays: '11', backHours: '365', backDays: '23', warn: true },
   { h: '2.5', back: '15', yearHours: '913', yearDays: '57', backHours: '91', backDays: '6', warn: false },
+  // 0 hours: winning back any time is more than was entered, so the note shows (SCRUM-420 item 6).
+  { h: '0', back: '30', yearHours: '0', yearDays: '0', backHours: '183', backDays: '11', warn: true },
 ];
 
 for (const c of CASES) {
