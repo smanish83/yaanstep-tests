@@ -19,10 +19,6 @@ export const KNOWN_BUGS: KnownBug[] = [
     note: 'footer links have contrast 4.34:1 (AA needs 4.5:1) on every page; fix exists but is not published',
   },
   {
-    jira: 'SCRUM-419', profile: 'both', title: /dice: "Up to 10" keeps every answer at 10 or below|dice: "Taking away" asks a taking-away question/,
-    note: 'the dice game ignores the "Up to 10" and "Taking away" choices',
-  },
-  {
     jira: 'SCRUM-420', profile: 'both', title: /How it works: example steps are approved steps/,
     note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
   },
