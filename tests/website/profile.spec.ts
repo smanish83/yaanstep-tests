@@ -9,15 +9,15 @@ import { knownBug } from '../support/known-bugs';
 test.beforeEach(() => { knownBug(); });
 
 const KEY = 'ys-profile';
-const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'];
+const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Brain games', 'Weather and temperature', 'Money and coins', 'Clocks and time'];
 /** The games each age should see on the Learning page, written out from the age tags on the cards. */
 const FITS: Record<number, string[]> = {
-  3: ['Maths', 'Reading', 'Story time', 'Story library', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature'],
-  4: ['Maths', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature'],
+  3: ['Maths', 'Reading', 'Story time', 'Story library', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Brain games', 'Weather and temperature'],
+  4: ['Maths', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Brain games', 'Weather and temperature'],
   5: GAMES.filter((g) => g !== 'Tens and ones' && g !== 'Fractions'),
   6: GAMES.filter((g) => g !== 'Fractions' && g !== 'Shapes, colors, numbers and animals'),
-  7: ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
-  8: ['Maths', 'Bar models', 'Tens and ones', 'Fractions', 'Story library', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
+  7: ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Learn about the world', 'Brain games', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
+  8: ['Maths', 'Bar models', 'Tens and ones', 'Fractions', 'Story library', 'Learn about the world', 'Brain games', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
   9: ['Maths', 'Bar models', 'Fractions', 'Story library', 'Money and coins', 'Clocks and time'],
   12: ['Maths', 'Bar models', 'Story library'],
 };
@@ -25,7 +25,7 @@ const STAGE: Record<number, string> = {
   3: 'seed', 4: 'seed', 5: 'sprout', 6: 'sprout', 7: 'small plant', 8: 'small plant',
   9: 'plant with a bud', 10: 'plant with a bud', 11: 'plant in flower', 12: 'plant in flower',
 };
-const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'calm', 'brain'];
 
 const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
@@ -280,15 +280,16 @@ test.describe('Reset progress lives in the child\'s profile (SCRUM-492)', () => 
 });
 
 test.describe('Comfort settings for children who learn in different ways (SCRUM-498)', () => {
-  test('the profile offers five comfort settings, chosen by need, and keeps them in the same key', async ({ page }) => {
+  test('the profile offers nine comfort settings, chosen by need, and keeps them in the same key', async ({ page }) => {
     const errors = watchErrors(page);
     await withProfile(page, { age: 6 });
     await page.locator('#ys-badge').click();
     const box = page.locator('#ys-profile .ys-comfort');
     await expect(box.locator('legend')).toHaveText('Comfort settings');
     await expect(box).toContainText('You do not need to tell us why.');
-    await expect(box.locator('button')).toHaveCount(5);
-    await expect(box.locator('button span')).toHaveText(['Easy reading', 'Calm mode', 'Bigger buttons', 'Strong contrast', 'Break reminders']);
+    await expect(box.locator('button')).toHaveCount(9);
+    await expect(box.locator('button span')).toHaveText(['Easy reading', 'Calm mode', 'Bigger buttons', 'Strong contrast', 'Break reminders', 'Fewer choices', 'Read questions aloud', 'Quiet rewards', 'Easy-reading font']);
+    for (const b of await box.locator('button small').all()) expect((await b.innerText()).length, 'a plain one-line description').toBeGreaterThan(20);
     for (const b of await box.locator('button').all()) await expect(b).toHaveAttribute('aria-pressed', 'false');
     await box.locator('button[data-comfort=easy]').click();
     await box.locator('button[data-comfort=big]').click();
@@ -372,9 +373,10 @@ test.describe('Comfort settings for children who learn in different ways (SCRUM-
     await page.goto('/accessibility.html');
     const part = page.locator('main');
     await expect(page.locator('#sprouts')).toHaveText('Yaanstep Sprouts for every child');
-    await expect(part).toContainText('We never ask about a diagnosis.');
-    await expect(part).toContainText('have not yet been tested with children with special needs');
-    await expect(part).toContainText('not therapy');
+    await expect(part).toContainText('never by a label, and we never ask why');
+    await expect(part).toContainText('What does not exist yet');
+    await expect(part).toContainText('Nothing here has been tried with children yet.');
+    await expect(part).toContainText('makes no health claims');
     const text = await part.innerText();
     for (const bad of [/\bimproves?\b/i, /\btreats?\b/i, /clinically/i, /fully accessible/i, /\bcures?\b/i]) expect(text).not.toMatch(bad);
     await page.goto('/sprouts.html');
