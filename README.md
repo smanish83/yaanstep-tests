@@ -29,6 +29,7 @@ npm run test:report                        # open the full HTML report
 | `tests/website/try-it.spec.ts` | Try it demo: every step is an approved step word for word (doc 05, doc 11), the 10 second countdown with a controlled clock, Not now, keyboard, focus, no shame wording, nothing stored or sent. |
 | `tests/website/time-calculator.spec.ts` | Time calculator: hand-worked numbers, bad input, keyboard, labels, nothing stored or sent. |
 | `tests/website/learning.spec.ts` | Learning page: 18,000 generated story questions and 18,000 number cards checked against an answer worked out separately; both games played to the end by tap, keyboard and mouse drag; all five maths styles; mistake hints in order (words, then dots); lesson steps; Keep going; game mode and Exit; focus and screen-reader hooks; layout and axe scan in every game view; nothing stored or sent. |
+| `tests/website/at-home.spec.ts` | Reading games at home (parents' page): the sixteen games with ages and what you need, safety rules first, only the reading-step words, no claims, linked from Learning and Reading, no errors, nothing stored or sent, 320 px, axe scan. |
 | `tests/website/themes.spec.ts` | Theme switcher: four themes, remembered without a cookie. |
 
 Screen sizes: desktop (1280 px), phone (Pixel 7 size), and tablet (820 px) for layout and the Learning games.
