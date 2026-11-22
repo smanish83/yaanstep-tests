@@ -144,7 +144,7 @@ test('How it works: example steps are approved steps', async ({ page }) => {
 
 // SCRUM-410 rule: no puzzle count (or "endless", "unlimited", "thousands of" puzzles) is stated in public
 // unless an automated test proves that many distinct puzzles exist. No count is proven yet, so none may appear.
-const LEARNING_PAGES = ['sprouts', 'maths', 'reading', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'reading', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps'];
 const COUNT_CLAIMS = [
   /\b\d{2,}[\d,]*\+?\s+(different |distinct |unique |new )?(puzzles|questions|problems|games|exercises)\b/i,
   /\b(endless|unlimited|infinite|countless|thousands of|hundreds of|millions of)\s+(puzzles|questions|problems|games|exercises)\b/i,
