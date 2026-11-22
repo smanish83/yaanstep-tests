@@ -26,10 +26,6 @@ export const KNOWN_BUGS: KnownBug[] = [
     jira: 'SCRUM-420', profile: 'both', title: /How it works: example steps are approved steps/,
     note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
   },
-  {
-    jira: 'SCRUM-453', profile: 'both', title: /Reset after confirming clears points, streak AND the chapters done/,
-    note: 'maths draft: Reset clears points and streak but not the chapters already finished (key demo-ch)',
-  },
 ];
 
 /** Call at the top of a test body. */
