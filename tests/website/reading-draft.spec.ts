@@ -16,7 +16,7 @@ const COMMON: Record<string, string> = { the: 'The dog runs.', and: 'I like cats
 const PICTURE_SET1 = ['cat', 'dog', 'sun', 'ball', 'moon', 'star'];
 
 async function open(page: Page, opts: { limit?: string; speed?: string } = {}) {
-  await page.addInitScript(`window.__said=[]; window.__rate=[]; try{ window.SpeechSynthesisUtterance=class{constructor(t){this.text=t;this.rate=1;this.voice=null;}}; const SS=window.speechSynthesis; SS.getVoices=()=>[{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'}]; SS.speak=(u)=>{window.__said.push(u.text);window.__rate.push(u.rate);}; SS.cancel=()=>{}; }catch(e){}`);
+  await page.addInitScript(`window.__said=[]; window.__rate=[]; try{ window.SpeechSynthesisUtterance=class{constructor(t){this.text=t;this.rate=1;this.voice=null;}}; const SS=window.speechSynthesis; SS.getVoices=()=>[{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'}]; SS.speak=(u)=>{window.__u=u;window.__said.push(u.text);window.__rate.push(u.rate);}; SS.cancel=()=>{}; }catch(e){}`);
   if (opts.limit || opts.speed) await page.addInitScript(([l, s]) => { if (l) localStorage.setItem('rd-limit', l); if (s) localStorage.setItem('rd-speed', s); }, [opts.limit, opts.speed]);
   await page.goto('/reading.html');
 }
@@ -159,6 +159,19 @@ test.describe('A4 common words', () => {
       await tiles.nth(i).click();
       expect(await said(page), w).toEqual([`${w}. ${COMMON[w.toLowerCase()]}`]);
     }
+  });
+  test('the sentence shows word by word and a marker follows the voice (SCRUM-496)', async ({ page }) => {
+    await open(page);
+    await step(page, 3);
+    await page.locator('.tile').first().click();
+    await expect(page.locator('#sub .w')).toHaveText(['The', 'dog', 'runs.']);
+    await expect(page.locator('#sub')).toHaveText('The dog runs.');
+    // Word 0 of "the. The dog runs." is the tile word; word 2 is "dog".
+    await page.evaluate(() => { const u = (window as any).__u; const at = [...u.text.matchAll(/\S+/g)][2].index; u.onboundary({ name: 'word', charIndex: at }); });
+    await expect(page.locator('#sub .w.now')).toHaveText('dog');
+    expect(await axeViolations(page, '#game')).toEqual([]);
+    await page.evaluate(() => (window as any).__u.onend());
+    await expect(page.locator('#sub .w.now')).toHaveCount(0);
   });
 });
 
