@@ -278,15 +278,15 @@ test.describe('Reset progress lives in the child\'s profile (SCRUM-492)', () => 
 });
 
 test.describe('Comfort settings for children who learn in different ways (SCRUM-498)', () => {
-  test('the profile offers easy reading, calm mode and bigger buttons, chosen by need, and keeps them in the same key', async ({ page }) => {
+  test('the profile offers five comfort settings, chosen by need, and keeps them in the same key', async ({ page }) => {
     const errors = watchErrors(page);
     await withProfile(page, { age: 6 });
     await page.locator('#ys-badge').click();
     const box = page.locator('#ys-profile .ys-comfort');
     await expect(box.locator('legend')).toHaveText('Comfort settings');
     await expect(box).toContainText('You do not need to tell us why.');
-    await expect(box.locator('button')).toHaveCount(3);
-    await expect(box.locator('button span')).toHaveText(['Easy reading', 'Calm mode', 'Bigger buttons']);
+    await expect(box.locator('button')).toHaveCount(5);
+    await expect(box.locator('button span')).toHaveText(['Easy reading', 'Calm mode', 'Bigger buttons', 'Strong contrast', 'Break reminders']);
     for (const b of await box.locator('button').all()) await expect(b).toHaveAttribute('aria-pressed', 'false');
     await box.locator('button[data-comfort=easy]').click();
     await box.locator('button[data-comfort=big]').click();
@@ -321,6 +321,39 @@ test.describe('Comfort settings for children who learn in different ways (SCRUM-
     expect(small, 'buttons under 64 px with bigger buttons on').toEqual([]);
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
     expect(await axeViolations(page, 'main')).toEqual([]);
+  });
+
+  test('strong contrast makes the text black on white, gives buttons dark edges and underlines links', async ({ page }) => {
+    await withProfile(page, { age: 6, comfort: ['contrast'] });
+    await expect(page.locator('html')).toHaveClass(/\bys-contrast\b/);
+    const look = await page.evaluate(() => {
+      const p = document.querySelector('main p')!, b = document.querySelector('main button, main a.btn')!, a = document.querySelector('main a')!;
+      return { bg: getComputedStyle(document.body).backgroundColor, text: getComputedStyle(p).color, edge: getComputedStyle(b).borderTopColor, width: parseFloat(getComputedStyle(b).borderTopWidth), line: getComputedStyle(a).textDecorationLine };
+    });
+    expect(look).toEqual({ bg: 'rgb(255, 255, 255)', text: 'rgb(0, 0, 0)', edge: 'rgb(0, 0, 0)', width: 3, line: 'underline' });
+    expect(await axeViolations(page, 'main')).toEqual([]);
+  });
+
+  test('break reminders show a calm break after the play time, wait before going back, and stay off unless chosen', async ({ page }) => {
+    await page.addInitScript(() => { (window as any).YS_REST_MS = 3000; (window as any).YS_REST_WAIT = 2; });
+    await withProfile(page, { age: 6 });
+    await page.waitForTimeout(4500);
+    await expect(page.locator('#ys-rest')).toHaveCount(0);
+    expect(await page.evaluate(() => Object.keys(sessionStorage))).toEqual([]);
+    await withProfile(page, { age: 6, comfort: ['rest'] });
+    const rest = page.locator('#ys-rest');
+    await expect(rest).toBeVisible({ timeout: 8000 });
+    await expect(rest.locator('h2')).toHaveText('Time for a little break');
+    await expect(rest).toContainText('stretch your arms');
+    const go = page.locator('#ys-rest-go');
+    await expect(go).toBeDisabled();
+    await expect(go).toHaveText(/^Back to play in \d+$/);
+    expect(await axeViolations(page, '#ys-rest')).toEqual([]);
+    await expect(go).toBeEnabled({ timeout: 4000 });
+    await expect(go).toHaveText('Back to play');
+    await expect(go).toBeFocused();
+    await go.click();
+    await expect(rest).toHaveCount(0);
   });
 
   test('turning a setting off removes it, and the profile goes back to the plain shape', async ({ page }) => {
