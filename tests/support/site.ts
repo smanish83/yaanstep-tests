@@ -1,7 +1,7 @@
 /**
  * One place that says what the website under test is expected to look like.
  *
- * One profile: the site as published on main of smanish83/yaanstep-website (shared menu, Products page,
+ * One profile: the site as published on main of smanish83/yaanstep-website (shared menu, products on the home page,
  * four themes). The old "next" profile became "live" when website v2 went out (22 Nov 2026, SCRUM-481).
  * Add a second profile again only while a build that changes these values waits to be published.
  * Owner: QA (Priya Raman, QA Automation Engineer, AI). Gate: Marcus Chen (QA Lead, AI).
@@ -20,10 +20,9 @@ export interface SiteProfile {
 
 const live: SiteProfile = {
   name: 'live',
-  pages: ['index', 'products', 'how-it-works', 'team', 'testers', 'try-it', 'time-calculator', 'sprouts', 'pricing', 'privacy', 'terms', 'accessibility'],
+  pages: ['index', 'how-it-works', 'team', 'testers', 'try-it', 'time-calculator', 'sprouts', 'pricing', 'privacy', 'terms', 'accessibility'],
   menu: [
     { label: 'Home', href: 'index.html' },
-    { label: 'Products', href: 'products.html' },
     { label: 'How it works', href: 'how-it-works.html' },
     { label: 'Team', href: 'team.html' },
     { label: 'Join the testers', href: 'testers.html' },

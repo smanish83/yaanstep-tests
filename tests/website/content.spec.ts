@@ -84,19 +84,31 @@ test.describe('legal pages', () => {
 });
 
 test.describe('team page', () => {
-  test('every team card is labeled as AI and the page says who the human founder is', async ({ page }) => {
+  // Manish, 22 Nov 2026: the AI label is said once, in a small "Please note" box at the top, not on every card.
+  test('one small "Please note" box near the top says who is AI; the cards repeat no label; the founder is named', async ({ page }) => {
     await page.goto(url('team'));
+    const note = page.locator('main .notice');
+    await expect(note).toHaveCount(1);
+    await expect(note).toContainText('AI agent, not a person');
+    await expect(note).toContainText('each portrait is AI-generated');
+    await expect(note).toContainText('Each AI agent has a defined job and area of expertise.');
+    await expect(note).toContainText('several of them review anything meant for children before it is published');
+    expect(await note.evaluate((n) => n.compareDocumentPosition(document.querySelector('main ul.team')!) & Node.DOCUMENT_POSITION_FOLLOWING), 'note comes before the cards').toBeTruthy();
+    const size = await note.evaluate((n) => parseFloat(getComputedStyle(n).fontSize));
+    const body = await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize));
+    expect(size, 'smaller than the body text').toBeLessThan(body);
+    expect(size, 'still readable').toBeGreaterThanOrEqual(13);
+    const main = await page.locator('main').innerText();
+    expect(main.match(/Each AI agent has a defined job/g) ?? [], 'said once').toHaveLength(1);
+    expect(main.match(/AI-generated/g) ?? [], 'said once').toHaveLength(1);
+    expect(main).not.toContain('AI agent ·');
     const cards = page.locator('main ul.team > li');
-    const count = await cards.count();
-    expect(count).toBeGreaterThanOrEqual(10);
-    for (let i = 0; i < count; i++) {
-      const card = cards.nth(i);
-      const text = await card.innerText();
-      if (/Manish Sandbhor/.test(text)) { expect(text, 'the founder card carries no AI label').not.toMatch(/\bAI\b/); continue; }
-      expect(text, `card ${i + 1}`).toMatch(/AI agent|AI-generated portrait/);
-    }
-    await expect(page.locator('main')).toContainText(/AI agent, not a person/);
-    await expect(page.locator('main')).toContainText('Manish Sandbhor');
+    expect(await cards.count()).toBeGreaterThanOrEqual(10);
+    // Screen readers still hear it on each picture.
+    const alts = await page.locator('main ul.team > li:not(.founder) img').evaluateAll((im) => im.map((i) => i.getAttribute('alt') ?? ''));
+    expect(alts.filter((a) => !a.startsWith('AI-generated portrait of '))).toEqual([]);
+    await expect(page.locator('main ul.team > li.founder')).toContainText('Manish Sandbhor');
+    await expect(page.locator('main ul.team > li.founder')).not.toContainText(/\bAI\b/);
   });
 });
 
