@@ -29,7 +29,7 @@ const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-
 
 const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
-async function withProfile(page: Page, p: { age: number; color?: number; nick?: string }, path = '/sprouts.html', points?: number) {
+async function withProfile(page: Page, p: { age: number; color?: number; nick?: string; comfort?: string[] }, path = '/sprouts.html', points?: number) {
   await page.goto(path);
   await page.evaluate(([k, v, pts]) => {
     localStorage.setItem(k as string, v as string);
@@ -274,5 +274,75 @@ test.describe('Reset progress lives in the child\'s profile (SCRUM-492)', () => 
     await page.locator('#ys-wipe').click();
     await page.locator('#ys-cancel').click();
     await expect(page.locator('#pts')).toHaveText('0');
+  });
+});
+
+test.describe('Comfort settings for children who learn in different ways (SCRUM-498)', () => {
+  test('the profile offers easy reading, calm mode and bigger buttons, chosen by need, and keeps them in the same key', async ({ page }) => {
+    const errors = watchErrors(page);
+    await withProfile(page, { age: 6 });
+    await page.locator('#ys-badge').click();
+    const box = page.locator('#ys-profile .ys-comfort');
+    await expect(box.locator('legend')).toHaveText('Comfort settings');
+    await expect(box).toContainText('You do not need to tell us why.');
+    await expect(box.locator('button')).toHaveCount(3);
+    await expect(box.locator('button span')).toHaveText(['Easy reading', 'Calm mode', 'Bigger buttons']);
+    for (const b of await box.locator('button').all()) await expect(b).toHaveAttribute('aria-pressed', 'false');
+    await box.locator('button[data-comfort=easy]').click();
+    await box.locator('button[data-comfort=big]').click();
+    await expect(box.locator('button[data-comfort=easy]')).toHaveAttribute('aria-pressed', 'true');
+    expect(await axeViolations(page, '#ys-profile')).toEqual([]);
+    await page.locator('#ys-save').click();
+    expect(JSON.parse((await stored(page))!)).toEqual({ age: 6, color: 0, nick: '', comfort: ['easy', 'big'] });
+    await expect(page.locator('html')).toHaveClass(/\bys-easy\b/);
+    await expect(page.locator('html')).toHaveClass(/\bys-big\b/);
+    await expect(page.locator('html')).not.toHaveClass(/\bys-calm\b/);
+    expect(Object.keys(await page.evaluate(() => ({ ...localStorage }))).sort()).toEqual([KEY]);
+    expect(errors).toEqual([]);
+  });
+
+  test('settings carry to every learning page; easy reading spaces the text and calm mode stops all movement', async ({ page }) => {
+    await withProfile(page, { age: 6, comfort: ['easy', 'calm', 'big'] });
+    for (const path of ['/stories.html', '/maths.html', '/sprouts.html']) {
+      await page.goto(path);
+      await expect(page.locator('html'), path).toHaveClass(/ys-easy/);
+    }
+    const css = await page.evaluate(() => {
+      const m = getComputedStyle(document.querySelector('main')!);
+      return { ls: parseFloat(m.letterSpacing), ws: parseFloat(m.wordSpacing), bg: getComputedStyle(document.body).backgroundColor };
+    });
+    expect(css.ls).toBeGreaterThan(0);
+    expect(css.ws).toBeGreaterThan(0);
+    expect(css.bg).toBe('rgb(251, 245, 230)');
+    await page.locator('#start-maths-auto').click();
+    const anim = await page.locator('#player svg.moving circle').first().evaluate((c) => getComputedStyle(c).animationName);
+    expect(anim).toBe('none');
+    const small = await page.locator('#player button:visible').evaluateAll((bs) => bs.filter((b) => { const r = b.getBoundingClientRect(); return r.height < 63.5 || r.width < 63.5; }).map((b) => b.textContent));
+    expect(small, 'buttons under 64 px with bigger buttons on').toEqual([]);
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await axeViolations(page, 'main')).toEqual([]);
+  });
+
+  test('turning a setting off removes it, and the profile goes back to the plain shape', async ({ page }) => {
+    await withProfile(page, { age: 6, comfort: ['calm'] });
+    await expect(page.locator('html')).toHaveClass(/ys-calm/);
+    await page.locator('#ys-badge').click();
+    await page.locator('#ys-profile button[data-comfort=calm]').click();
+    await page.locator('#ys-save').click();
+    await expect(page.locator('html')).not.toHaveClass(/ys-calm/);
+    expect(JSON.parse((await stored(page))!)).toEqual({ age: 6, color: 0, nick: '' });
+  });
+
+  test('the accessibility page has the statement for Yaanstep Sprouts, without promises it cannot keep', async ({ page }) => {
+    await page.goto('/accessibility.html');
+    const part = page.locator('main');
+    await expect(page.locator('#sprouts')).toHaveText('Yaanstep Sprouts for every child');
+    await expect(part).toContainText('We never ask about a diagnosis.');
+    await expect(part).toContainText('have not yet been tested with children with special needs');
+    await expect(part).toContainText('not therapy');
+    const text = await part.innerText();
+    for (const bad of [/\bimproves?\b/i, /\btreats?\b/i, /clinically/i, /fully accessible/i, /\bcures?\b/i]) expect(text).not.toMatch(bad);
+    await page.goto('/sprouts.html');
+    await expect(page.locator('main .notice a[href="accessibility.html#sprouts"]')).toBeVisible();
   });
 });
