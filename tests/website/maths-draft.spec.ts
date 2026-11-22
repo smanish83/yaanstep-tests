@@ -432,7 +432,7 @@ test('maths draft: "Hear it" speaks words, not symbols ("12 - 4" must not be rea
   await page.addInitScript(() => {
     (window as any).__spoken = [];
     (window as any).SpeechSynthesisUtterance = function (t: string) { this.text = t; };
-    Object.defineProperty(window, 'speechSynthesis', { value: { getVoices() { return []; }, cancel() {}, speak(u: any) { (window as any).__spoken.push(u.text); } } });
+    Object.defineProperty(window, 'speechSynthesis', { value: { getVoices() { return [{ name: 'Local Sam', lang: 'en-US', localService: true, voiceURI: 'ls' }]; }, cancel() {}, speak(u: any) { (window as any).__spoken.push(u.text); } } });
   });
   const problems: string[] = [];
   const hear = async (what: string) => {

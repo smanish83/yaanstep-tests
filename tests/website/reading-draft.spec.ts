@@ -16,7 +16,7 @@ const COMMON: Record<string, string> = { the: 'The dog runs.', and: 'I like cats
 const PICTURE_SET1 = ['cat', 'dog', 'sun', 'ball', 'moon', 'star'];
 
 async function open(page: Page, opts: { limit?: string; speed?: string } = {}) {
-  await page.addInitScript(`window.__said=[]; window.__rate=[]; try{ const SS=window.speechSynthesis; SS.speak=(u)=>{window.__said.push(u.text);window.__rate.push(u.rate);}; SS.cancel=()=>{}; }catch(e){}`);
+  await page.addInitScript(`window.__said=[]; window.__rate=[]; try{ const SS=window.speechSynthesis; SS.getVoices=()=>[{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'}]; SS.speak=(u)=>{window.__said.push(u.text);window.__rate.push(u.rate);}; SS.cancel=()=>{}; }catch(e){}`);
   if (opts.limit || opts.speed) await page.addInitScript(([l, s]) => { if (l) localStorage.setItem('rd-limit', l); if (s) localStorage.setItem('rd-speed', s); }, [opts.limit, opts.speed]);
   await page.goto('/reading.html');
 }

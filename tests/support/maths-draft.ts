@@ -286,7 +286,9 @@ export function problemsWith(s: Snapshot, band: string, allowed?: Kind[]): strin
   } else if (['coin', 'coinmore', 'money', 'clock', 'change', 'duration'].includes(s.kind)) {
     // money and clock questions have their own option rules (below)
   } else {
-    if (s.options.length !== 4) bad(`has ${s.options.length} choices, expected 4: ${JSON.stringify(s.options)}`);
+    // Compare and put-in-order offer only the numbers in the question (review fix, SCRUM-477); everything else has 4.
+    const want = s.kind === 'compare' || s.kind === 'extreme' ? nums.length : 4;
+    if (s.options.length !== want) bad(`has ${s.options.length} choices, expected ${want}: ${JSON.stringify(s.options)}`);
     if (new Set(s.options).size !== s.options.length) bad(`has repeated choices ${JSON.stringify(s.options)}`);
     if (!s.options.every((o) => /^\d+$/.test(o))) bad(`has a choice that is not a whole number ${JSON.stringify(s.options)}`);
   }
