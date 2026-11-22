@@ -225,3 +225,47 @@ for (const view of ['menu', 'name', 'equal', 'shade'] as const) {
     });
   }
 }
+
+const WORD_D: Record<string, number> = { halves: 2, thirds: 3, quarters: 4 };
+for (const g of GAMES) {
+  test(`${g.title}: after a miss, Show me how teaches with a different number of parts, then goes once it is right`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/fractions.html');
+    await page.locator(`#play-${g.id}`).click();
+    await expect(page.locator('#howbtn')).toHaveCount(0);
+    let d = 0;
+    if (g.id === 'name') {
+      d = +(await page.locator('#art svg').getAttribute('aria-label'))!.match(/cut into (\d+) equal parts/)![1];
+      const k = +(await page.locator('#art svg').getAttribute('aria-label'))!.match(/(\d+) parts? (?:is|are) shaded/)![1];
+      await page.locator(`#choices button:not([data-v="${k}/${d}"])`).first().click();
+    } else if (g.id === 'equal') {
+      d = WORD_D[(await page.locator('#say').innerText()).match(/cut into (\w+)\?/)![1]];
+      await page.locator(`#choices button:not([data-kind="right"])`).first().click();
+    } else {
+      d = +(await page.locator('#fgrid').getAttribute('aria-label'))!.match(/(\d+) equal parts/)![1];
+      await page.locator('#check').click();
+    }
+    await expect(page.locator('#tip')).toContainText('Not yet.');
+    await page.locator('#howbtn').click();
+    await expect(page.locator('#lesson-h')).toBeFocused();
+    await expect(page.locator('#lesson svg')).toBeVisible();
+    const say = await page.locator('#lesson-say').innerText();
+    const shown = +say.match(/(?:there are|has) (\d+)/)![1];
+    expect(shown).not.toBe(d);
+    await expect(page.getByRole('button', { name: 'Watch again' })).toBeVisible();
+    if (g.id === 'name') {
+      const label = (await page.locator('#art svg').getAttribute('aria-label'))!;
+      const k = +label.match(/(\d+) parts? (?:is|are) shaded/)![1];
+      await page.locator(`#choices button[data-v="${k}/${d}"]`).click();
+    } else if (g.id === 'equal') {
+      await page.locator('#choices button[data-kind="right"]').click();
+    } else {
+      const k = +(await page.locator('#say').innerText()).match(/Shade (\d+)/)![1];
+      for (let i = 0; i < k; i++) await page.locator(`.fpart[data-i="${i}"]`).click();
+      await expect(page.locator('#lesson')).toBeVisible();
+      await page.locator('#check').click();
+    }
+    await expect(page.locator('#lesson')).toHaveCount(0);
+    await expect(page.locator('#howbtn')).toHaveCount(0);
+  });
+}
