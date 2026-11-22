@@ -9,23 +9,23 @@ import { knownBug } from '../support/known-bugs';
 test.beforeEach(() => { knownBug(); });
 
 const KEY = 'ys-profile';
-const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Shapes, colors, numbers and animals'];
+const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'];
 /** The games each age should see on the Learning page, written out from the age tags on the cards. */
 const FITS: Record<number, string[]> = {
-  3: ['Maths', 'Reading', 'Story time', 'Story library', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals'],
-  4: ['Maths', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals'],
+  3: ['Maths', 'Reading', 'Story time', 'Story library', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature'],
+  4: ['Maths', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature'],
   5: GAMES.filter((g) => g !== 'Tens and ones' && g !== 'Fractions'),
   6: GAMES.filter((g) => g !== 'Fractions' && g !== 'Shapes, colors, numbers and animals'),
-  7: ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games'],
-  8: ['Maths', 'Bar models', 'Tens and ones', 'Fractions', 'Story library'],
-  9: ['Maths', 'Bar models', 'Fractions', 'Story library'],
+  7: ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
+  8: ['Maths', 'Bar models', 'Tens and ones', 'Fractions', 'Story library', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
+  9: ['Maths', 'Bar models', 'Fractions', 'Story library', 'Money and coins', 'Clocks and time'],
   12: ['Maths', 'Bar models', 'Story library'],
 };
 const STAGE: Record<number, string> = {
   3: 'seed', 4: 'seed', 5: 'sprout', 6: 'sprout', 7: 'small plant', 8: 'small plant',
   9: 'plant with a bud', 10: 'plant with a bud', 11: 'plant in flower', 12: 'plant in flower',
 };
-const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics'];
 
 const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
