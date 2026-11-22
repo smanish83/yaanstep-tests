@@ -144,7 +144,7 @@ test('passing needs 8 of 10 right first time: 8 passes and unlocks the next chap
   await expect(page.locator('#q')).toHaveText('7 of 10 right first time. Good effort!');
   await expect(page.locator('#msg')).toContainText('No points are lost');
   await expect(page.locator('#b1')).toHaveText('Watch the lesson again');
-  await expect(page.locator('#b2')).toHaveText('Try 10 more');
+  await expect(page.locator('#b2')).toHaveText('Try again');
   await page.locator('#chbtn').click();
   await expect(page.locator('#chlist button[data-i="0"]')).not.toContainText('✔');
   await page.locator('#chlist button[data-i="0"]').click();

@@ -159,7 +159,7 @@ test('every question kind that has a wrong tap keeps the question open, says "Ne
       }
     }
   }
-  expect([...done].sort()).toEqual(['add', 'add3', 'compare', 'count', 'divide', 'extreme', 'subtract', 'missing', 'more', 'multiply', 'odd', 'onemore'].sort());
+  expect([...done].sort()).toEqual(['add', 'add3', 'change', 'clock', 'coin', 'compare', 'count', 'divide', 'duration', 'extreme', 'subtract', 'missing', 'money', 'more', 'multiply', 'odd', 'onemore'].sort());
 });
 
 test('ages 5-6 chapter "Bigger or smaller" stays within 20 (SCRUM-456)', async ({ page }) => {

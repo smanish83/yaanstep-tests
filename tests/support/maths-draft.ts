@@ -95,7 +95,7 @@ export interface Snapshot {
 /** The mid-set stretch break (draft of 17 Nov): a screen between questions with "I am ready" and "Skip the break". Helpers walk through it
  *  so the question tests do not see it; maths-draft.spec.ts has its own test for the break. */
 export async function passStretchBreak(page: Page): Promise<boolean> {
-  if (!(await page.locator('#q').innerText()).trim().startsWith('Stretch break!')) return false;
+  if (!/^Stretch break[.!]/.test((await page.locator('#q').innerText()).trim())) return false; // older ages: "Stretch break."
   await page.locator('#opts button', { hasText: 'I am ready' }).click();
   await page.clock.runFor(1700);
   return true;
@@ -394,7 +394,7 @@ export function problemsWith(s: Snapshot, band: string, allowed?: Kind[]): strin
       if (!s.hop.label.includes(`Start at ${nums[0]}.`)) bad(`the hop game description "${s.hop.label}" does not start at ${nums[0]}`);
     }
   } else {
-    if (band !== '3-4' && s.kind !== 'frame') bad(`picture puzzle shown to ages ${band}`);
+    if (band !== '3-4' && s.kind !== 'frame' && !special) bad(`picture puzzle shown to ages ${band}`); // coins, money and clocks are pictures for every age
     if (s.kind === 'frame') {
       if (s.cells !== 10) bad(`the frame has ${s.cells} circles, expected 10`);
       const n = +s.prompt.match(/\d+/)![0];
