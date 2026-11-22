@@ -35,7 +35,7 @@ test.describe('what the page tells a parent', () => {
 
   test('offers both games and hides the no-JavaScript table', async ({ page }) => {
     await expect(page.locator('#start-sorting')).toBeVisible();
-    await expect(page.locator('#start-maths')).toBeVisible();
+    await expect(page.locator('#start-maths-auto')).toBeVisible(); // SCRUM-494: one Start; the game menus wait behind a "Grown-up" toggle
     await expect(page.locator('#static-lessons')).toBeHidden();
     await expect(page.locator('#player')).toBeHidden();
   });
@@ -380,6 +380,8 @@ test.describe('Maths games (age 6 and up)', () => {
   });
 
   test('can be played with the keyboard only', async ({ page }) => {
+    await page.locator('#maths-own summary').focus();
+    await page.keyboard.press('Enter');
     await page.locator('input[name=style][value=questions]').focus();
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('input[name=style]:checked')).toHaveValue('dice');

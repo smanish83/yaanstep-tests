@@ -19,13 +19,30 @@ export async function openLearning(page: Page) {
   await expect(page.locator('#learn')).toBeVisible();
 }
 
+/** Opens "Grown-up: choose the game yourself" and starts the game chosen there. */
 export async function startMaths(page: Page, o: MathsOptions = {}) {
+  if (!(await page.locator('#maths-own').evaluate((d) => (d as HTMLDetailsElement).open))) await page.locator('#maths-own summary').click();
   await page.locator(`input[name=kind][value=${o.kind ?? 'mixed'}]`).check();
   await page.locator(`input[name=size][value="${o.size ?? '20'}"]`).check();
   await page.locator(`input[name=style][value=${o.style ?? 'questions'}]`).check();
   await page.locator('#with-lesson').setChecked(o.lesson ?? false);
   await page.locator('#start-maths').click();
   await expect(page.locator('#player')).toBeVisible();
+}
+
+/** Starts the maths game that Yaanstep Sprouts picks from the child's age and answers. */
+export async function startAutoMaths(page: Page) {
+  await page.locator('#start-maths-auto').click();
+  await expect(page.locator('#player')).toBeVisible();
+}
+
+/** The kind of game on screen: hunt, line, dice, race or questions. */
+export async function gameStyle(page: Page): Promise<string> {
+  const s = stage(page);
+  if (await s.locator('.dice-table').count()) return 'dice';
+  if (await s.locator('.hunt-grid').count()) return 'hunt';
+  if (await s.locator('.num-line').count()) return 'line';
+  return (await s.locator('.track').count()) ? 'race' : 'questions';
 }
 
 export async function startSorting(page: Page) {
