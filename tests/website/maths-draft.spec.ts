@@ -3,7 +3,7 @@ import { axeViolations, horizontalOverflow, storedData, watchErrors, watchReques
 import { knownBug } from '../support/known-bugs';
 import { BANDS, CHAPTERS, band, boot, dayTime, lessonArithmeticProblems, lessonPictureProblems, lessonThenQuestions, next, openChapter, playQuestions, rightAnswer, snapshot, tap, wrongAnswer } from '../support/maths-draft';
 
-// The hidden maths draft page (maths-draft.html, SCRUM-409). It is not in the menu and not in the site profile, so it has its own
+// The maths games page (maths.html, released 22 Nov 2026; was the hidden maths-draft.html, SCRUM-409). It is not in the menu and not in the site profile, so it has its own
 // spec. Expected answers are worked out in the support file from what is on the screen, never read from the page's code.
 // Timers run on a fake clock: the pause after a right answer and the dates are controlled by the test.
 
@@ -25,18 +25,21 @@ async function questions(page: Page, b: string, opts: { day?: number; seed?: num
   await lessonThenQuestions(page, true);
 }
 
-test('loads as a hidden page: noindex, no menu link from any other page, no errors, nothing sent, no outside requests', async ({ page, request }) => {
+test('loads as a public page linked from Learning: indexable, notice for parents, no errors, nothing sent, no outside requests', async ({ page, request }) => {
   const reqs = watchRequests(page);
   await boot(page);
-  await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', /noindex/);
-  await expect(page.locator('h1')).toHaveText('Yaanstep maths (draft preview)');
-  await expect(page.locator('.note')).toContainText('Not reviewed, not tested by QA, not for children yet');
+  expect(await page.locator('meta[name=robots][content*=noindex]').count(), 'the released page must not be noindex').toBe(0);
+  await expect(page.locator('h1')).toHaveText('Yaanstep maths');
+  await expect(page.locator('.note')).toContainText('parent and child together');
+  await expect(page.locator('.note')).toContainText('Not yet tested with children');
+  await expect(page.locator('.note')).toContainText('kept only in this browser');
+  await expect(page.locator('a[href="learning.html"]')).toHaveCount(1);
   expect(reqs.external('http://127.0.0.1:4173')).toEqual([]);
   expect(reqs.carryingData()).toEqual([]);
-  for (const p of ['index', 'learning', 'team', 'privacy', 'how-it-works', 'try-it', 'time-calculator', 'pricing', 'terms', 'accessibility', 'testers']) {
-    const html = await (await request.get(`/${p}.html`)).text();
-    expect(html, `${p}.html must not link to the hidden page`).not.toContain('maths-draft');
-  }
+  const learning = await (await request.get('/learning.html')).text();
+  expect(learning, 'learning.html links to maths.html').toContain('href="maths.html"');
+  const old = await (await request.get('/maths-draft.html')).text();
+  expect(old, 'the old draft address points to maths.html').toContain('url=maths.html');
 });
 
 test('maths draft: has an icon link like the other pages', async ({ page }) => {

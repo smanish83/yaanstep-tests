@@ -30,7 +30,7 @@ test.describe('what the page tells a parent', () => {
   });
 
   test('the footer says the app is 13 and up and these lessons are for a parent and child together', async ({ page }) => {
-    await expect(page.locator('footer')).toContainText('The sample lessons on this page are for a parent and child to use together.');
+    await expect(page.locator('main .notice')).toContainText('The sample lessons on this page are for a parent and child to use together.'); // SCRUM-469: moved from the footer to the page notice
   });
 
   test('offers both games and hides the no-JavaScript table', async ({ page }) => {

@@ -15,14 +15,6 @@ interface KnownBug { jira: string; profile: 'live' | 'next' | 'both'; title: Reg
 
 export const KNOWN_BUGS: KnownBug[] = [
   {
-    jira: 'SCRUM-456', profile: 'both', title: /chapter "Bigger or smaller" stays within 20/,
-    note: 'maths draft: ages 5-6 Bigger or smaller can ask 20 or 21 (equal numbers get +1)',
-  },
-  {
-    jira: 'SCRUM-469', profile: 'next', title: /the footer says the app is 13 and up and these lessons are for a parent and child together/,
-    note: 'the shared footer dropped the Learning page line "for a parent and child to use together"',
-  },
-  {
     jira: 'SCRUM-418', profile: 'live', title: /^page [\w-]+ › accessibility scan/,
     note: 'footer links have contrast 4.34:1 (AA needs 4.5:1) on every page; fix exists but is not published',
   },
@@ -35,32 +27,8 @@ export const KNOWN_BUGS: KnownBug[] = [
     note: 'the How it works examples are not from the approved Tiny-Step Library (doc 05)',
   },
   {
-    jira: 'SCRUM-454', profile: 'both', title: /maths draft: (lesson|number question|picture question|end screen) view fits the screen and passes the accessibility scan/,
-    note: 'maths draft: the Hear it button is named "Read it to me" but shows "Hear it" (WCAG 2.5.3 label in name)',
-  },
-  {
-    jira: 'SCRUM-455', profile: 'both', title: /screen reader hooks: progress and messages are live regions/,
-    note: 'maths draft: Chapters and Skip the lesson buttons are 40 px high, below the 48 px rule',
-  },
-  {
-    jira: 'SCRUM-449', profile: 'both', title: /"Hear it" speaks words, not symbols/,
-    note: 'maths-draft.html sends the written symbols to the voice, so "12 - 4" is read as "12 by 4"',
-  },
-  {
     jira: 'SCRUM-453', profile: 'both', title: /Reset after confirming clears points, streak AND the chapters done/,
     note: 'maths draft: Reset clears points and streak but not the chapters already finished (key demo-ch)',
-  },
-  {
-    jira: 'SCRUM-446', profile: 'both', title: /maths draft: has an icon link like the other pages/,
-    note: 'maths-draft.html has no icon link (browsers ask for /favicon.ico and get a 404)',
-  },
-  {
-    jira: 'SCRUM-475', profile: 'both', title: /reading draft: has an icon link like the other pages/,
-    note: 'reading-draft.html has no icon link (same as SCRUM-446 for the maths draft); SCRUM-475 tracks it with the contrast bug',
-  },
-  {
-    jira: 'SCRUM-475', profile: 'both', title: /layout fits the screen and the accessibility scan is clean on the menu and each step/,
-    note: 'reading-draft.html: pressed Calm and 30 buttons are white on #1d8a76, contrast 4.24:1 (needs 4.5:1)',
   },
 ];
 

@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-// Helpers for the hidden maths draft page (maths-draft.html, SCRUM-409).
+// Helpers for the maths games page (maths.html, was maths-draft.html; SCRUM-409).
 // Expected answers are worked out HERE from what is on the screen (the words, the number of shapes drawn, the shape geometry),
 // never from the page's own code or its aria-labels. The page's timers run on a fake clock (see boot) so the pause after a right
 // answer costs nothing.
@@ -9,7 +9,7 @@ import { expect, type Page } from '@playwright/test';
 // (Next / Back / Skip the lesson) -> ten questions -> the chapter is passed with 8 right first time. "Chapters" lists all
 // chapters; free play (endless) is offered at the end of a chapter.
 
-export const PAGE = '/maths-draft.html';
+export const PAGE = '/maths.html';
 export const BANDS = ['3-4', '5-6', '7-8', '9-10', '11-12'] as const;
 export const DAY0 = Date.UTC(2026, 0, 1);
 export const dayTime = (n: number) => new Date(DAY0 + n * 864e5 + 12 * 36e5); // noon UTC on day n

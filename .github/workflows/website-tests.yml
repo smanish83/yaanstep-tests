@@ -1,0 +1,54 @@
+name: Website tests
+
+# Runs the Playwright suite against yaanstep-website.
+# On a push, the website branch with the same name is tested (falls back to main).
+# By hand (Actions tab, Run workflow), choose any website branch.
+on:
+  push:
+    branches: [main, 'release/**']
+  workflow_dispatch:
+    inputs:
+      website_ref:
+        description: Website branch or commit to test
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick the website branch
+        id: ref
+        run: |
+          want="${{ inputs.website_ref || github.ref_name }}"
+          if git ls-remote --exit-code --heads https://github.com/smanish83/yaanstep-website "$want" >/dev/null; then echo "ref=$want" >> "$GITHUB_OUTPUT"; else echo "ref=main" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        with:
+          repository: smanish83/yaanstep-website
+          ref: ${{ steps.ref.outputs.ref }}
+          path: site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run the suite (next profile)
+        run: npx playwright test
+        env:
+          CI: '1'
+          SITE_DIR: site
+          SITE_PROFILE: next
+      - name: Summary
+        if: always()
+        run: node scripts/summary.mjs || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: reports/
+          retention-days: 14

@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 
-// The hidden reading draft (reading-draft.html, mode A). Not in the menu, not public. Expected words and spoken texts come from
+// The reading games page (reading.html, mode A; released 22 Nov 2026, was the hidden reading-draft.html). Not in the menu; linked from Learning. Expected words and spoken texts come from
 // project doc 18 "Reading Mode A Content Lists v1", written out below, never read from the page's own code.
 // Speech is recorded by replacing speechSynthesis.speak, so no sound is needed and the test sees exactly what would be said.
 
@@ -18,7 +18,7 @@ const PICTURE_SET1 = ['cat', 'dog', 'sun', 'ball', 'moon', 'star'];
 async function open(page: Page, opts: { limit?: string; speed?: string } = {}) {
   await page.addInitScript(`window.__said=[]; window.__rate=[]; try{ const SS=window.speechSynthesis; SS.speak=(u)=>{window.__said.push(u.text);window.__rate.push(u.rate);}; SS.cancel=()=>{}; }catch(e){}`);
   if (opts.limit || opts.speed) await page.addInitScript(([l, s]) => { if (l) localStorage.setItem('rd-limit', l); if (s) localStorage.setItem('rd-speed', s); }, [opts.limit, opts.speed]);
-  await page.goto('/reading-draft.html');
+  await page.goto('/reading.html');
 }
 const said = (page: Page) => page.evaluate(() => (window as any).__said as string[]);
 const clear = (page: Page) => page.evaluate(() => { (window as any).__said = []; (window as any).__rate = []; });
@@ -32,22 +32,20 @@ test('reading draft: has an icon link like the other pages', async ({ page }) =>
   expect(await page.locator('link[rel~=icon]').count(), 'no <link rel="icon"> on the page').toBeGreaterThan(0);
 });
 
-test('is a hidden draft page: noindex, labelled as a draft by AI agents, not linked from any page, no errors, no outside requests, nothing sent', async ({ page, request }) => {
+test('is a public page linked from Learning: indexable, labelled as made by the AI team, no errors, no outside requests, nothing sent', async ({ page, request }) => {
   await page.route('**/favicon.ico', (r) => r.fulfill({ status: 204 })); // covered by the icon-link test
   const errors = watchErrors(page);
   const reqs = watchRequests(page);
   await open(page);
-  await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', /noindex/);
-  await expect(page.locator('body')).toContainText('draft');
-  await expect(page.locator('body')).toContainText('AI agents');
+  expect(await page.locator('meta[name=robots][content*=noindex]').count(), 'the released page must not be noindex').toBe(0);
+  await expect(page.locator('body')).toContainText('AI team');
   await expect(page.locator('body')).toContainText('no microphone');
+  await expect(page.locator('body')).toContainText('parent and child together');
   expect(await page.locator('h1').count()).toBe(1);
-  for (const p of ['index', 'products', 'learning', 'how-it-works', 'team', 'try-it', 'pricing', 'privacy', 'terms', 'accessibility', 'testers']) {
-    const html = await (await request.get(`/${p}.html`)).text();
-    expect(html, `${p}.html links to the reading draft`).not.toContain('reading-draft');
-  }
-  const sitemap = await request.get('/sitemap.xml');
-  if (sitemap.ok()) expect(await sitemap.text()).not.toContain('reading-draft');
+  const learning = await (await request.get('/learning.html')).text();
+  expect(learning, 'learning.html links to reading.html').toContain('href="reading.html"');
+  const old = await (await request.get('/reading-draft.html')).text();
+  expect(old, 'the old draft address points to reading.html').toContain('url=reading.html');
   expect(errors).toEqual([]);
   expect(reqs.external('http://127.0.0.1:4173')).toEqual([]);
   expect(reqs.sending()).toEqual([]);
@@ -253,7 +251,7 @@ test.describe('parent area', () => {
 
   test('offers only English on-device voices, speaks with one of them, and remembers the one the parent picks', async ({ page }) => {
     await page.addInitScript(FAKE(`[{name:'Remote Anna',lang:'en-US',localService:false,voiceURI:'ra'},{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'},{name:'Local Zira',lang:'en-US',localService:true,voiceURI:'lz'},{name:'Local Hans',lang:'de-DE',localService:true,voiceURI:'lh'}]`));
-    await page.goto('/reading-draft.html');
+    await page.goto('/reading.html');
     const options = await page.locator('#voicesel option').allInnerTexts();
     const joined = options.join('|');
     expect(joined, 'online voice must not be offered').not.toContain('Remote Anna');
@@ -277,7 +275,7 @@ test.describe('parent area', () => {
 
   test('shows the "no built-in voice" note when the device has only online or non-English voices', async ({ page }) => {
     await page.addInitScript(FAKE(`[{name:'Remote Anna',lang:'en-US',localService:false,voiceURI:'ra'},{name:'Local Hans',lang:'de-DE',localService:true,voiceURI:'lh'}]`));
-    await page.goto('/reading-draft.html');
+    await page.goto('/reading.html');
     await expect(page.locator('#novoice')).toBeVisible();
     await expect(page.locator('#novoice')).toContainText('No built-in voice');
   });
