@@ -185,3 +185,25 @@ for (const view of ['menu', 'lesson', 'fill the gap'] as const) {
     });
   }
 }
+
+// Read-along (SCRUM-496, Manish 22 Nov 2026): the sentence being read has a marker on the word being read.
+test('read-along: the lesson line lights up word by word as the voice reads it, then clears', async ({ page }) => {
+  await page.addInitScript(`window.__said=[];
+    window.SpeechSynthesisUtterance=class{constructor(t){this.text=t;this.rate=1;this.voice=null;this.lang='';}};
+    const SS=window.speechSynthesis;
+    SS.getVoices=()=>[{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'}];
+    SS.cancel=()=>{};
+    SS.speak=(u)=>{ window.__said.push(u.text); window.__u=u; };
+    window.__boundary=(i)=>{ const u=window.__u; const at=[...u.text.matchAll(/\\S+/g)][i].index; u.onboundary&&u.onboundary({name:'word',charIndex:at}); };
+    window.__end=()=>{ window.__u.onend&&window.__u.onend({}); };`);
+  await page.goto('/sentences.html');
+  await page.locator('#play-lesson').click();
+  const line = page.locator('#lessonsay');
+  const words = (await line.innerText()).split(/\s+/);
+  await expect(line.locator('.w')).toHaveCount(words.length);
+  await page.evaluate(() => (window as any).__boundary(1));
+  await expect(line.locator('.w.now')).toHaveText(words[1]);
+  await page.evaluate(() => (window as any).__end());
+  await expect(line.locator('.w.now')).toHaveCount(0);
+  expect(await axeViolations(page)).toEqual([]);
+});
