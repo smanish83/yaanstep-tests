@@ -264,3 +264,28 @@ for (const view of ['menu', 'bars', 'question mark', 'work it out'] as const) {
     });
   }
 }
+
+test('after a miss, Show me how plays a worked example with a different problem, then goes once the answer is right', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/bar-models.html');
+  await page.locator('#band-9-10').click();
+  const facts = (await page.locator('#problem .sent').count()) - 1;
+  for (let i = 0; i < 3 + facts; i++) await page.locator('#go').click();
+  const text = (await page.locator('#problem').innerText()).trim();
+  const want = solve(text)!;
+  await expect(page.locator('#howbtn')).toHaveCount(0);
+  await page.locator(`#qopts button:not([data-q="${want.q}"])`).first().click();
+  await page.locator('#howbtn').click();
+  const lesson = page.locator('#lesson');
+  await expect(page.locator('#lesson-h')).toBeFocused();
+  const prob = (await lesson.locator('.lesson-prob').innerText()).trim();
+  expect(prob).not.toBe(text);
+  expect(solve(prob)?.kind).toBe(want.kind);
+  await expect(lesson.locator('#lesson-model svg')).toBeVisible();
+  const steps = await lesson.locator('#lesson-steps li').allInnerTexts();
+  expect(steps.some((s) => s.startsWith('The question mark goes where the answer is.'))).toBe(true);
+  expect(steps.at(-1)).not.toContain(want.say);
+  await expect(lesson.getByRole('button', { name: 'Watch again' })).toBeVisible();
+  await page.locator(`#qopts button[data-q="${want.q}"]`).click();
+  await expect(page.locator('#lesson')).toHaveCount(0);
+});
