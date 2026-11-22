@@ -127,3 +127,20 @@ test('How it works: example steps are approved steps', async ({ page }) => {
   expect(shown.length).toBeGreaterThanOrEqual(4);
   expect(shown.filter((s) => !approved.includes(s)), 'steps that are not in doc 05 or doc 11').toEqual([]);
 });
+
+// SCRUM-410 rule: no puzzle count (or "endless", "unlimited", "thousands of" puzzles) is stated in public
+// unless an automated test proves that many distinct puzzles exist. No count is proven yet, so none may appear.
+const LEARNING_PAGES = ['learning', 'maths', 'reading', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'sounds', 'rhymes', 'sentences', 'stories'];
+const COUNT_CLAIMS = [
+  /\b\d{2,}[\d,]*\+?\s+(different |distinct |unique |new )?(puzzles|questions|problems|games|exercises)\b/i,
+  /\b(endless|unlimited|infinite|countless|thousands of|hundreds of|millions of)\s+(puzzles|questions|problems|games|exercises)\b/i,
+  /\bnever run out\b/i,
+];
+for (const p of LEARNING_PAGES) {
+  test(`${p}: states no puzzle count that a test has not proven (SCRUM-410)`, async ({ page }) => {
+    knownBug();
+    await page.goto(url(p));
+    const text = await bodyText(page);
+    for (const claim of COUNT_CLAIMS) expect.soft(text, `count claim: ${claim}`).not.toMatch(claim);
+  });
+}
