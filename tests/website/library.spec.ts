@@ -36,7 +36,7 @@ test('every book is complete, credited and openly licensed', async ({ page }) =>
     if (b.pages.length < 2 || b.pages.some((p) => !p.text.trim())) problems.push(`${c.id}: a page has no text`);
     if (!k.authors.length) problems.push(`${c.id}: no author`);
     if (!k.illustrators.length) problems.push(`${c.id}: no illustrator`);
-    if (!/^https:\/\/(storyweaver\.org\.in|www\.africanstorybook\.org|africanstorybook\.org)\//.test(k.source)) problems.push(`${c.id}: source link ${k.source}`);
+    if (!/^https:\/\/(storyweaver\.org\.in|www\.africanstorybook\.org|africanstorybook\.org|bookdash\.org)\//.test(k.source)) problems.push(`${c.id}: source link ${k.source}`);
     if (!/^(CC BY [34]\.0|Public Domain)$/.test(k.licence)) problems.push(`${c.id}: licence ${k.licence}`);
     if (!/^https:\/\/creativecommons\.org\/(licenses\/by\/[34]\.0|publicdomain\/mark\/1\.0)\/$/.test(k.licenceUrl)) problems.push(`${c.id}: licence link ${k.licenceUrl}`);
     if (!/WebP/.test(k.changes)) problems.push(`${c.id}: changes not stated`);
