@@ -154,7 +154,8 @@ for (const p of LEARNING_PAGES) {
   test(`${p}: states no puzzle count that a test has not proven (SCRUM-410)`, async ({ page }) => {
     knownBug();
     await page.goto(url(p));
-    const text = await bodyText(page);
+    // The set-length choice on the maths page ("5 questions, 10 questions, 15 questions") is a setting, not a claim.
+    const text = (await bodyText(page)).replace(/Questions in each set.*?\b15 questions\b/, '');
     for (const claim of COUNT_CLAIMS) expect.soft(text, `count claim: ${claim}`).not.toMatch(claim);
   });
 }

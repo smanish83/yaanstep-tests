@@ -333,7 +333,8 @@ export function problemsWith(s: Snapshot, band: string, allowed?: Kind[]): strin
           if (!s.options.includes(want)) bad(`the total (${want}) is not among the choices ${JSON.stringify(s.options)}`);
           if (s.options.length !== 4) bad(`expected 4 choices, found ${JSON.stringify(s.options)}`);
           if (!s.options.every((o) => /^(\d+¢|\$\d+(\.\d\d)?)$/.test(o))) bad(`a choice is not written as N¢ or $N: ${JSON.stringify(s.options)}`);
-          if (label !== `${notes ? 'Notes' : 'Coins'}: ${names.join(', ')}`) bad(`the description "${label}" does not match what is drawn (${names.join(', ')})`);
+          if (label !== `${notes ? 'Bills' : 'Coins'}: ${names.join(', ')}`) // US words since SCRUM-476: bills, not notes
+            bad(`the description "${label}" does not match what is drawn (${names.join(', ')})`);
         } else {
           // change: one note and a price tag
           if (s.coins.length !== 1 || !names[0].startsWith('$')) bad(`expected one play bill, found ${JSON.stringify(names)}`);
