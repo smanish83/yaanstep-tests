@@ -1,3 +1,4 @@
+import { bareSprouts } from '../support/checks';
 import { test, expect } from '@playwright/test';
 import { site, url } from '../support/site';
 import { knownBug } from '../support/known-bugs';
@@ -32,10 +33,11 @@ for (const p of site.pages) {
       expect((await bodyText(page)).match(/[$€£₹]\s?\d[\d.,]*/g) ?? []).toEqual([]);
     });
 
-    test('does not use the unapproved name "Sprouts" in public', async ({ page }) => {
+    test('uses the product name only in full, as "Yaanstep Sprouts"', async ({ page }) => {
       knownBug();
       await page.goto(url(p));
-      expect(await page.content()).not.toMatch(/sprouts/i);
+      expect(bareSprouts(await page.locator('body').innerText())).toEqual([]);
+      expect(bareSprouts(await page.title())).toEqual([]);
     });
 
     test('never calls an advisor a psychologist or therapist', async ({ page }) => {
@@ -130,7 +132,7 @@ test('How it works: example steps are approved steps', async ({ page }) => {
 
 // SCRUM-410 rule: no puzzle count (or "endless", "unlimited", "thousands of" puzzles) is stated in public
 // unless an automated test proves that many distinct puzzles exist. No count is proven yet, so none may appear.
-const LEARNING_PAGES = ['learning', 'maths', 'reading', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'sounds', 'rhymes', 'sentences', 'stories'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'reading', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'sounds', 'rhymes', 'sentences', 'stories'];
 const COUNT_CLAIMS = [
   /\b\d{2,}[\d,]*\+?\s+(different |distinct |unique |new )?(puzzles|questions|problems|games|exercises)\b/i,
   /\b(endless|unlimited|infinite|countless|thousands of|hundreds of|millions of)\s+(puzzles|questions|problems|games|exercises)\b/i,

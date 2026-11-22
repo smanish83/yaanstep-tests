@@ -44,7 +44,7 @@ test('makes no claim that a game improves reading', async ({ page }) => {
 });
 
 test('is linked from the Learning and Reading pages', async ({ page }) => {
-  for (const from of ['/learning.html', '/reading.html']) {
+  for (const from of ['/sprouts.html', '/reading.html']) {
     await page.goto(from);
     await expect(page.locator('a[href="at-home.html"]').first()).toBeVisible();
   }

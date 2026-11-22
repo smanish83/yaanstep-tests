@@ -156,14 +156,14 @@ test.describe('Same and different (age 3, with a grown-up)', () => {
     await stage(page).locator('.tray button.item-btn').nth(names.findIndex((l) => names.indexOf(l) === names.lastIndexOf(l))).click();
     await next(page).click();
     await stage(page).locator('button.basket').first().click();
-    await expect(feedback(page)).toHaveText('Pick a block first.');
-    const block = stage(page).locator('.tray button[data-color]').first();
-    const color = (await block.getAttribute('data-color'))!;
-    await block.click();
-    await expect(block).toHaveAttribute('aria-pressed', 'true');
-    await stage(page).locator(`button.basket:not([data-color=${color}])`).click();
-    await expect(feedback(page)).toHaveText(`Not yet. That block is ${color}. Try the ${color} basket.`);
-    await expect(stage(page).locator('.tray button[data-color]')).toHaveCount(6);
+    await expect(feedback(page)).toHaveText('Pick one to move first.');
+    const item = stage(page).locator('.tray button[data-group]').first();
+    const group = (await item.getAttribute('data-group'))!;
+    await item.click();
+    await expect(item).toHaveAttribute('aria-pressed', 'true');
+    await stage(page).locator(`button.basket:not([data-group="${group}"])`).click();
+    await expect(feedback(page)).toHaveText(new RegExp(`^Not yet\\. That .*\\b${group}\\b.*\\. Try the ${group} basket\\.$`));
+    await expect(stage(page).locator('.tray button[data-group]')).toHaveCount(6);
   });
 
   test('can be played with the keyboard only', async ({ page }) => {
@@ -186,24 +186,43 @@ test.describe('Same and different (age 3, with a grown-up)', () => {
     await expect(title(page)).toBeFocused();
   });
 
-  test('a sock can be dragged onto its match and a block into its basket with the mouse', async ({ page }, info) => {
+  test('a thing can be dragged onto its match and into its basket with the mouse', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'Mouse dragging is a desktop check. A real finger on a touch screen is a manual test for Manish.');
     await startSorting(page);
     const socks = stage(page).locator('.tray button.item-btn');
     const labels = await socks.evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
     const twin = labels.find((l, i) => labels.indexOf(l) !== i)!;
     await socks.nth(labels.indexOf(twin)).dragTo(socks.nth(labels.lastIndexOf(twin)), { steps: 8 });
-    await expect(feedback(page)).toContainText('Yes! Those two socks are the same.');
+    await expect(feedback(page)).toContainText(/Yes! Those two (socks|mittens|cups|hats) are the same\./);
     await next(page).click();
     const names = await stage(page).locator('.tray button.item-btn').evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
     await stage(page).locator('.tray button.item-btn').nth(names.findIndex((l) => names.indexOf(l) === names.lastIndexOf(l))).click();
     await next(page).click();
-    const block = stage(page).locator('.tray button[data-color]').first();
-    const color = await block.getAttribute('data-color');
-    await block.dragTo(stage(page).locator(`button.basket[data-color=${color}]`), { steps: 8 });
+    const item = stage(page).locator('.tray button[data-group]').first();
+    const group = await item.getAttribute('data-group');
+    await item.dragTo(stage(page).locator(`button.basket[data-group="${group}"]`), { steps: 8 });
     await expect(feedback(page)).toHaveText('Yes! 5 to go.');
-    await expect(stage(page).locator('.tray button[data-color]')).toHaveCount(5);
+    await expect(stage(page).locator('.tray button[data-group]')).toHaveCount(5);
     await expect(page.locator('.item-ghost')).toHaveCount(0);
+  });
+
+  test('has many different examples: things to pair, ways to be different, and ways to sort (SCRUM-493)', async ({ page }) => {
+    const pairs = new Set<string>();
+    const kinds = new Set<string>();
+    for (let round = 0; round < 12; round++) {
+      await page.goto('sprouts.html');
+      await startSorting(page);
+      const labels = await stage(page).locator('.tray button.item-btn').evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
+      expect(labels).toHaveLength(4);
+      expect(new Set(labels).size, `one pair and two others: ${labels}`).toBe(3);
+      pairs.add([...labels].sort().join('|'));
+      kinds.add(((await page.locator('#player-say').innerText()).match(/Two (\w+) are the same/) ?? [])[1] ?? '');
+      await playSortingPerfectly(page);
+      const t = await page.locator('#player-title').innerText();
+      expect(t).toBe('Now do it for real');
+    }
+    expect(pairs.size, 'the pairs change from game to game').toBeGreaterThanOrEqual(10);
+    expect(kinds.size, `more than one kind of thing to pair: ${[...kinds]}`).toBeGreaterThanOrEqual(2);
   });
 
   test('"Play again" starts a fresh game from step 1', async ({ page }) => {

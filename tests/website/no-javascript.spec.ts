@@ -36,7 +36,7 @@ test('How it works shows its example table', async ({ page }) => {
 });
 
 test('Learning shows what the games cover instead of the games', async ({ page }) => {
-  await page.goto(url('learning'));
+  await page.goto(url('sprouts'));
   await expect(page.locator('#learn')).toBeHidden();
   await expect(page.locator('#static-lessons')).toBeVisible();
   await expect(page.locator('#static-lessons tbody tr')).toHaveCount(2);

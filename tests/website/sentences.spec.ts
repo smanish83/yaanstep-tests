@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
+import { axeViolations, bareSprouts, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 
 // Parts of a sentence (sentences.html, reading mode D1, SCRUM-429; doc 19 as updated 16 Nov 2026; added 22 Nov 2026).
@@ -75,7 +75,7 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   expect(await page.locator('meta[name=robots][content*=noindex]').count()).toBe(0);
   await expect(page.locator('h1')).toHaveText('Parts of a sentence');
   for (const t of ['AI team', 'no microphone', 'parent and child together', 'Not yet tested with children']) await expect(page.locator('body')).toContainText(t);
-  expect(await (await request.get('/learning.html')).text()).toContain('href="sentences.html"');
+  expect(await (await request.get('/sprouts.html')).text()).toContain('href="sentences.html"');
   expect(await (await request.get('/reading.html')).text()).toContain('href="sentences.html"');
   await page.locator('#play-game').click();
   await choices(page).first().click();
@@ -85,7 +85,7 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   const s = await storedData(page, context);
   expect(s.local, 'the page saves nothing').toEqual([]);
   expect(s.cookies).toEqual([]);
-  expect(await page.locator('body').innerText()).not.toMatch(/Sprouts/i);
+  expect(bareSprouts(await page.locator('body').innerText())).toEqual([]);
 });
 
 test('the lesson has 3 screens, each read aloud, with a capital letter at the start and a full stop at the end, then leads to the game', async ({ page }) => {

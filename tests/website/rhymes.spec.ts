@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
+import { axeViolations, bareSprouts, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 
 // Rhymes and letter teams page (rhymes.html, reading foundations SCRUM-472 items 3 and 4, doc 25; added 22 Nov 2026).
@@ -72,8 +72,8 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   expect(await page.locator('meta[name=robots][content*=noindex]').count()).toBe(0);
   await expect(page.locator('h1')).toHaveText('Rhymes and letter teams');
   for (const t of ['AI team', 'no microphone', 'parent and child together', 'Not yet tested with children', 'our own words']) await expect(page.locator('body')).toContainText(t);
-  await expect(page.locator('a', { hasText: 'Back to Learning' })).toHaveAttribute('href', 'learning.html');
-  expect(await (await request.get('/learning.html')).text()).toContain('href="rhymes.html"');
+  await expect(page.locator('a', { hasText: 'Back to Yaanstep Sprouts' })).toHaveAttribute('href', 'sprouts.html');
+  expect(await (await request.get('/sprouts.html')).text()).toContain('href="rhymes.html"');
   expect(await (await request.get('/reading.html')).text()).toContain('href="rhymes.html"');
   for (const id of ['#play-rhyme', '#play-poems', '#play-teams']) {
     await page.locator(id).click();
@@ -88,7 +88,7 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   expect(s.cookies).toEqual([]);
   expect(s.session).toEqual([]);
   const text = await page.locator('body').innerText();
-  expect(text).not.toMatch(/Sprouts/i);
+  expect(bareSprouts(text)).toEqual([]);
   expect(text, 'no copied lines from the traditional rhyme').not.toMatch(/my son John|one shoe off/i);
 });
 

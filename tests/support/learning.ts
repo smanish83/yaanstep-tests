@@ -15,7 +15,7 @@ export const next = (page: Page) => page.locator('#player-next');
 export const exit = (page: Page) => page.locator('#player-close');
 
 export async function openLearning(page: Page) {
-  await page.goto(url('learning'));
+  await page.goto(url('sprouts'));
   await expect(page.locator('#learn')).toBeVisible();
 }
 
@@ -104,27 +104,27 @@ export async function playMathsPerfectly(page: Page): Promise<string[]> {
 
 /** Plays the three sorting steps by tapping. */
 export async function playSortingPerfectly(page: Page) {
-  // Step 1: two socks are the same.
+  // Step 1: two things (socks, mittens, cups or hats) are the same.
   const socks = stage(page).locator('.tray button.item-btn');
   const labels = await socks.evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
   const twin = labels.find((l, i) => labels.indexOf(l) !== i)!;
   const at = labels.map((l, i) => (l === twin ? i : -1)).filter((i) => i >= 0);
   await socks.nth(at[0]).click();
   await socks.nth(at[1]).click();
-  await expect(feedback(page)).toContainText('Yes! Those two socks are the same.');
+  await expect(feedback(page)).toContainText(/Yes! Those two (socks|mittens|cups|hats) are the same\./);
   await next(page).click();
   // Step 2: one thing is different.
   const things = stage(page).locator('.tray button.item-btn');
   const names = await things.evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
   await things.nth(names.findIndex((l) => names.indexOf(l) === names.lastIndexOf(l))).click();
-  await expect(feedback(page)).toContainText(/Yes! The (ball|star|block) is different\./);
+  await expect(feedback(page)).toHaveText(/^Yes! The .+ is different\.$/);
   await next(page).click();
-  // Step 3: sort six blocks into two baskets.
+  // Step 3: sort six things into two baskets (by color, shape or size).
   for (let i = 0; i < 6; i++) {
-    const block = stage(page).locator('.tray button[data-color]').first();
-    const color = await block.getAttribute('data-color');
-    await block.click();
-    await stage(page).locator(`button.basket[data-color=${color}]`).click();
+    const item = stage(page).locator('.tray button[data-group]').first();
+    const group = await item.getAttribute('data-group');
+    await item.click();
+    await stage(page).locator(`button.basket[data-group="${group}"]`).click();
   }
   await expect(feedback(page)).toContainText('All sorted! Well done.');
   await next(page).click();

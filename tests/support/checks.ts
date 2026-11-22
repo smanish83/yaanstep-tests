@@ -67,3 +67,11 @@ export function watchErrors(page: Page): string[] {
   page.on('response', (r) => { if (r.status() >= 400) errors.push(`HTTP ${r.status()}: ${r.url()}`); });
   return errors;
 }
+
+/**
+ * The young-children product is named "Yaanstep Sprouts" (Manish, 22 Nov 2026). "Sprouts" must never appear
+ * on its own as a name: returns every "sprouts" left after the full name and the page address are taken out.
+ */
+export function bareSprouts(text: string): string[] {
+  return text.replace(/Yaanstep Sprouts/g, '').replace(/sprouts\.html/g, '').match(/sprouts/gi) ?? [];
+}

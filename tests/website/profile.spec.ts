@@ -25,11 +25,11 @@ const STAGE: Record<number, string> = {
   3: 'seed', 4: 'seed', 5: 'sprout', 6: 'sprout', 7: 'small plant', 8: 'small plant',
   9: 'plant with a bud', 10: 'plant with a bud', 11: 'plant in flower', 12: 'plant in flower',
 };
-const LEARNING_PAGES = ['learning', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories'];
 
 const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
-async function withProfile(page: Page, p: { age: number; color?: number; nick?: string }, path = '/learning.html', points?: number) {
+async function withProfile(page: Page, p: { age: number; color?: number; nick?: string }, path = '/sprouts.html', points?: number) {
   await page.goto(path);
   await page.evaluate(([k, v, pts]) => {
     localStorage.setItem(k as string, v as string);
@@ -42,7 +42,7 @@ test('first visit to Learning asks the age, shows every game, stores nothing and
   await page.route('**/favicon.ico', (r) => r.fulfill({ status: 204 }));
   const errors = watchErrors(page);
   const reqs = watchRequests(page);
-  await page.goto('/learning.html');
+  await page.goto('/sprouts.html');
   await expect(page.locator('#ys-ask h2')).toHaveText('How old is your child?');
   await expect(page.locator('#ys-ask')).toContainText('kept only on this device');
   await expect(page.locator('#ys-ask .ys-ages button')).toHaveText(['3', '4', '5', '6', '7', '8', '9', '10', '11', '12']);
@@ -56,7 +56,7 @@ test('first visit to Learning asks the age, shows every game, stores nothing and
 });
 
 test('"Show everything" on the age question closes it and stores nothing', async ({ page }) => {
-  await page.goto('/learning.html');
+  await page.goto('/sprouts.html');
   await page.locator('#ys-skip').click();
   await expect(page.locator('#ys-ask')).toHaveCount(0);
   expect(await visibleGames(page)).toEqual(GAMES);
@@ -66,7 +66,7 @@ test('"Show everything" on the age question closes it and stores nothing', async
 for (const age of Object.keys(FITS).map(Number)) {
   test(`picking age ${age} keeps only the age on this device and shows only the games that fit`, async ({ page, context }) => {
     const reqs = watchRequests(page);
-    await page.goto('/learning.html');
+    await page.goto('/sprouts.html');
     await page.locator(`#ys-ask button[data-age="${age}"]`).click();
     await expect(page.locator('#ys-ask')).toHaveCount(0);
     expect(JSON.parse((await stored(page))!)).toEqual({ age, color: 0, nick: '' });
@@ -105,7 +105,7 @@ for (const age of Object.keys(STAGE).map(Number)) {
 }
 
 test('the avatar shows the points below it, and the count follows the maths points', async ({ page }) => {
-  await withProfile(page, { age: 6 }, '/learning.html', 30);
+  await withProfile(page, { age: 6 }, '/sprouts.html', 30);
   await expect(page.locator('#ys-pts')).toHaveText('30 points');
   const badge = (await page.locator('#ys-badge svg').boundingBox())!;
   const pts = (await page.locator('#ys-pts').boundingBox())!;
@@ -213,7 +213,7 @@ test('buttons are at least 48 by 48 px: the age question, the avatar and the pro
       expect(box.height, await b.innerText()).toBeGreaterThanOrEqual(47.5);
     }
   };
-  await page.goto('/learning.html');
+  await page.goto('/sprouts.html');
   await check('#ys-ask button');
   await page.locator('#ys-ask button[data-age="6"]').click();
   await check('#ys-badge, #ys-filter button');
@@ -225,7 +225,7 @@ for (const view of ['age question', 'with a profile', 'profile open'] as const) 
   for (const width of [0, 320]) {
     test(`profile: ${view} fits the screen and passes the accessibility scan${width ? ' at 320 px' : ''}`, async ({ page }) => {
       if (width) await page.setViewportSize({ width, height: 700 });
-      if (view === 'age question') await page.goto('/learning.html');
+      if (view === 'age question') await page.goto('/sprouts.html');
       else await withProfile(page, { age: 7, nick: 'Mo' });
       if (view === 'profile open') await page.locator('#ys-badge').click();
       expect(await horizontalOverflow(page), 'overflow').toBeLessThanOrEqual(1);
@@ -233,3 +233,46 @@ for (const view of ['age question', 'with a profile', 'profile open'] as const) 
     });
   }
 }
+
+test.describe('Reset progress lives in the child\'s profile (SCRUM-492)', () => {
+  const DEMO = JSON.stringify({ points: 40, lastDay: null, streak: 0, restDaysUsed: { week: -1, used: 0 }, milestones: {} });
+
+  test('asks first; "No" keeps progress; "Yes" deletes points, garden and chapters but keeps the profile and settings', async ({ page }) => {
+    const errors = watchErrors(page);
+    await withProfile(page, { age: 7, nick: 'Sam' }, '/sprouts.html', 40);
+    await page.evaluate(() => { localStorage.setItem('sprouts:demo-ch', '["x"]'); localStorage.setItem('demo-garden', '[1]'); localStorage.setItem('set-len', '10'); });
+    await page.locator('#ys-badge').click();
+    await expect(page.locator('#ys-ptext')).toHaveText('Progress on this device: 40 points.');
+    await expect(page.locator('#ys-confirm')).toBeHidden();
+    await page.locator('#ys-reset').click();
+    await expect(page.locator('#ys-confirm')).toBeVisible();
+    await expect(page.locator('#ys-confirm')).toHaveAttribute('role', 'alertdialog');
+    await expect(page.locator('#ys-confirm')).toContainText('cannot be undone');
+    await expect(page.locator('#ys-keep')).toBeFocused();
+    await page.locator('#ys-keep').click();
+    await expect(page.locator('#ys-confirm')).toBeHidden();
+    await expect(page.locator('#ys-reset')).toBeFocused();
+    expect(await page.evaluate(() => localStorage.getItem('sprouts:demo'))).toBe(DEMO);
+    await page.locator('#ys-reset').click();
+    await page.locator('#ys-wipe').click();
+    await expect(page.locator('#ys-ptext')).toHaveText('Progress deleted. The games start fresh.');
+    await expect(page.locator('#ys-pts')).toHaveText('0 points');
+    const left = await page.evaluate(() => Object.keys(localStorage).sort());
+    expect(left).toEqual(['set-len', 'ys-profile']);
+    expect(errors).toEqual([]);
+  });
+
+  test('the maths page points to the profile for reset once a profile exists, and keeps its own Reset without one', async ({ page }) => {
+    await page.goto('/maths.html');
+    await expect(page.locator('#reset')).toBeVisible();
+    await expect(page.locator('#ys-reset-note')).toHaveCount(0);
+    await withProfile(page, { age: 8 }, '/maths.html', 40);
+    await expect(page.locator('#reset')).toBeHidden();
+    await expect(page.locator('#ys-reset-note')).toHaveText("To reset progress, open your child's profile: tap the picture in the corner.");
+    await page.locator('#ys-badge').click();
+    await page.locator('#ys-reset').click();
+    await page.locator('#ys-wipe').click();
+    await page.locator('#ys-cancel').click();
+    await expect(page.locator('#pts')).toHaveText('0');
+  });
+});

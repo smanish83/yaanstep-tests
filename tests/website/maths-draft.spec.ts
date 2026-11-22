@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
+import { axeViolations, bareSprouts, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 import { BANDS, CHAPTERS, band, boot, dayTime, lessonArithmeticProblems, lessonPictureProblems, lessonThenQuestions, next, openChapter, playQuestions, rightAnswer, snapshot, tap, wrongAnswer } from '../support/maths-draft';
 
@@ -33,11 +33,11 @@ test('loads as a public page linked from Learning: indexable, notice for parents
   await expect(page.locator('.note')).toContainText('parent and child together');
   await expect(page.locator('.note')).toContainText('Not yet tested with children');
   await expect(page.locator('.note')).toContainText('kept only in this browser');
-  await expect(page.locator('a[href="learning.html"]')).toHaveCount(1);
+  await expect(page.locator('a[href="sprouts.html"]')).toHaveCount(1);
   expect(reqs.external('http://127.0.0.1:4173')).toEqual([]);
   expect(reqs.carryingData()).toEqual([]);
-  const learning = await (await request.get('/learning.html')).text();
-  expect(learning, 'learning.html links to maths.html').toContain('href="maths.html"');
+  const learning = await (await request.get('/sprouts.html')).text();
+  expect(learning, 'sprouts.html links to maths.html').toContain('href="maths.html"');
   const old = await (await request.get('/maths-draft.html')).text();
   expect(old, 'the old draft address points to maths.html').toContain('url=maths.html');
 });
@@ -57,11 +57,10 @@ test('maths draft: no console errors and no failed requests through a lesson and
   expect(errors).toEqual([]);
 });
 
-test('never uses the working name in anything a visitor can see or hear', async ({ page }) => {
+test('uses the product name only in full, as "Yaanstep Sprouts"', async ({ page }) => {
   await boot(page);
-  const text = (await page.locator('body').innerText()).toLowerCase();
-  expect(text).not.toContain('sprouts');
-  expect(await page.title().then((t) => t.toLowerCase())).not.toContain('sprouts');
+  expect(bareSprouts(await page.locator('body').innerText())).toEqual([]);
+  expect(bareSprouts(await page.title())).toEqual([]);
 });
 
 test('menu: the five age bands and the parent area; nothing else showing', async ({ page }) => {

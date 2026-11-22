@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
+import { axeViolations, bareSprouts, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 
 // Story time (stories.html, reading mode B, SCRUM-486; doc 14; added 22 Nov 2026).
@@ -75,7 +75,7 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   expect(await page.locator('meta[name=robots][content*=noindex]').count()).toBe(0);
   await expect(page.locator('h1')).toHaveText('Story time');
   for (const t of ['our own words', 'AI team', 'no microphone', 'Not yet tested with children', 'Nothing is saved', 'asking a grown-up first before sharing food']) await expect(page.locator('body')).toContainText(t);
-  expect(await (await request.get('/learning.html')).text()).toContain('href="stories.html"');
+  expect(await (await request.get('/sprouts.html')).text()).toContain('href="stories.html"');
   expect(await (await request.get('/reading.html')).text()).toContain('href="stories.html"');
   await page.locator('#story-ball').click();
   await page.locator('#readit').click();
@@ -86,7 +86,7 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   const s = await storedData(page, context);
   expect(s.local, 'the page saves nothing').toEqual([]);
   expect(s.cookies).toEqual([]);
-  expect(await page.locator('body').innerText()).not.toMatch(/Sprouts/i);
+  expect(bareSprouts(await page.locator('body').innerText())).toEqual([]);
   // Only links to our own pages.
   const hrefs = await page.locator('a[href]').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
   expect(hrefs.filter((h) => /^(https?:)?\/\//.test(h))).toEqual([]);

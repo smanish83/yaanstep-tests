@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
+import { axeViolations, bareSprouts, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 
 // The reading games page (reading.html, mode A; released 22 Nov 2026, was the hidden reading-draft.html). Not in the menu; linked from Learning. Expected words and spoken texts come from
@@ -42,8 +42,8 @@ test('is a public page linked from Learning: indexable, labelled as made by the 
   await expect(page.locator('body')).toContainText('no microphone');
   await expect(page.locator('body')).toContainText('parent and child together');
   expect(await page.locator('h1').count()).toBe(1);
-  const learning = await (await request.get('/learning.html')).text();
-  expect(learning, 'learning.html links to reading.html').toContain('href="reading.html"');
+  const learning = await (await request.get('/sprouts.html')).text();
+  expect(learning, 'sprouts.html links to reading.html').toContain('href="reading.html"');
   const old = await (await request.get('/reading-draft.html')).text();
   expect(old, 'the old draft address points to reading.html').toContain('url=reading.html');
   expect(errors).toEqual([]);
@@ -51,10 +51,10 @@ test('is a public page linked from Learning: indexable, labelled as made by the 
   expect(reqs.sending()).toEqual([]);
 });
 
-test('does not use the working product name "Sprouts" on its own on the page', async ({ page }) => {
+test('does not use the product name "Sprouts" on its own on the page', async ({ page }) => {
   await open(page);
   const text = await page.locator('body').innerText();
-  expect(text).not.toMatch(/Sprouts/i);
+  expect(bareSprouts(text)).toEqual([]);
 });
 
 test('the menu lists the four steps, with ages', async ({ page }) => {

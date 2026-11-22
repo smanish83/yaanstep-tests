@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
+import { axeViolations, bareSprouts, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 
 // Sounds and beats page (sounds.html, reading foundations SCRUM-472, doc 25; added 22 Nov 2026).
@@ -59,8 +59,8 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   await expect(page.locator('body')).toContainText('no microphone');
   await expect(page.locator('body')).toContainText('parent and child together');
   await expect(page.locator('body')).toContainText('Not yet tested with children');
-  await expect(page.locator('a', { hasText: 'Back to Learning' })).toHaveAttribute('href', 'learning.html');
-  expect(await (await request.get('/learning.html')).text()).toContain('href="sounds.html"');
+  await expect(page.locator('a', { hasText: 'Back to Yaanstep Sprouts' })).toHaveAttribute('href', 'sprouts.html');
+  expect(await (await request.get('/sprouts.html')).text()).toContain('href="sounds.html"');
   expect(await (await request.get('/reading.html')).text()).toContain('href="sounds.html"');
   // play a little of both games
   await page.locator('#play-first').click();
@@ -77,9 +77,9 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   expect(s.session).toEqual([]);
 });
 
-test('does not use the working product name "Sprouts" on the page', async ({ page }) => {
+test('does not use the product name "Sprouts" on its own on the page', async ({ page }) => {
   await open(page);
-  expect(await page.locator('body').innerText()).not.toMatch(/Sprouts/i);
+  expect(bareSprouts(await page.locator('body').innerText())).toEqual([]);
 });
 
 test('first sounds: 40 rounds, each with one right picture, two pictures with a different first sound, and the right question spoken', async ({ page }) => {

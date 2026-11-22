@@ -20,7 +20,7 @@ export interface SiteProfile {
 
 const live: SiteProfile = {
   name: 'live',
-  pages: ['index', 'products', 'how-it-works', 'team', 'testers', 'try-it', 'time-calculator', 'learning', 'pricing', 'privacy', 'terms', 'accessibility'],
+  pages: ['index', 'products', 'how-it-works', 'team', 'testers', 'try-it', 'time-calculator', 'sprouts', 'pricing', 'privacy', 'terms', 'accessibility'],
   menu: [
     { label: 'Home', href: 'index.html' },
     { label: 'Products', href: 'products.html' },
