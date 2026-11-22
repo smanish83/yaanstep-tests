@@ -179,6 +179,34 @@ test('reading aloud can be paused and started again, and the next button still w
   expect(await axeViolations(page)).toEqual([]);
 });
 
+// Manish 22 Nov 2026: "Reading is getting finished before word highlights". The marker must keep up with the voice,
+// also on voices that never report each word, and learn how fast this device's voice really reads.
+test('the read-along marker keeps up with a voice that reports no words, and learns the voice\'s pace', async ({ page }) => {
+  await page.clock.install();
+  const b = await openFirstBook(page);
+  await page.evaluate(() => { (window as any).__hold = true; });
+  await page.locator('#rnext').click();
+  const words = b.pages[0].text.match(/\S+/g)!;
+  const total = words.reduce((t, w) => t + w.length + 1 + (/[.!?]["”’']?$/.test(w) ? 6 : /[,;:]["”’']?$/.test(w) ? 3 : 0), 0);
+  test.skip(total <= 20 || words.length < 3, 'needs a page with a few words');
+  expect(await page.evaluate(() => (window as any).YS_READ.pace())).toBe(62);
+  await page.locator('#readit').click();
+  // This voice takes 100 ms a letter at speed 0.8, slower than the first guess, so the marker reaches the last word
+  // by the time the voice ends, and from then on moves at the voice's own pace.
+  const took = Math.round((100 * total) / 0.8);
+  await page.clock.fastForward(took);
+  await expect(page.locator('#ltext .w').nth(words.length - 1)).toHaveClass(/now/);
+  await page.evaluate(() => { const u = (window as any).__u; u.onend({ type: 'end' }); });
+  await expect(page.locator('#ltext .w.now')).toHaveCount(0);
+  const pace = await page.evaluate(() => (window as any).YS_READ.pace());
+  expect(pace).toBeGreaterThan(85);
+  expect(pace).toBeLessThan(95);
+  // A word the voice reports moves the marker to that word straight away.
+  await page.locator('#readit').click();
+  await page.evaluate(() => (window as any).__boundary(2));
+  await expect(page.locator('#ltext .w').nth(2)).toHaveClass(/now/);
+});
+
 for (const [age, want, name] of [[0, '0.8', 'Gentle'], [4, '0.7', 'Slow'], [6, '0.8', 'Gentle'], [9, '0.95', 'Normal']] as const) {
   test(`the reading speed starts at ${name} for ${age ? `a child of ${age}` : 'no profile'}, and can be changed`, async ({ page }) => {
     await openFirstBook(page, age || undefined);
