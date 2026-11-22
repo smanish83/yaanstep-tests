@@ -338,7 +338,7 @@ test('Find the pairs: with reduced motion the cards turn over without a flip ani
   await open(page);
   await page.locator('#play-memory').click();
   await page.locator('#board button[data-i="0"]').click();
-  const anim = await page.locator('#board button[data-i="0"] svg').evaluate((s) => getComputedStyle(s).animationName);
+  const anim = await page.locator('#board button[data-i="0"] svg').first().evaluate((s) => getComputedStyle(s).animationName);
   expect(anim).toBe('none');
 });
 
