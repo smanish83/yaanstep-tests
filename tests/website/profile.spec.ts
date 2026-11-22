@@ -117,8 +117,10 @@ test('the avatar shows the points below it, and the count follows the maths poin
 
 for (const p of LEARNING_PAGES) {
   test(`${p}: with a profile, the avatar is always visible in the corner, even after scrolling`, async ({ page }) => {
+    // Set the profile on another page first, so the reload in withProfile cannot cut off this page's pictures.
+    await withProfile(page, { age: 5 }, '/sprouts.html');
     const errors = watchErrors(page);
-    await withProfile(page, { age: 5 }, `/${p}.html`);
+    await page.goto(`/${p}.html`);
     const badge = page.locator('#ys-badge');
     await expect(badge).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

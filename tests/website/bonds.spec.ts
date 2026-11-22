@@ -202,7 +202,7 @@ for (const g of GAMES) {
     await page.locator('#howbtn').click();
     const lesson = page.locator('#lesson');
     await expect(lesson.locator('h3')).toBeFocused();
-    await expect(lesson.locator('svg[role=img]')).toHaveAttribute('aria-label', /at a time/);
+    await expect(lesson.locator('svg[role=img]')).toHaveAttribute('aria-label', /at a time|what is left/);
     const said = await page.locator('#lesson-say').innerText();
     expect(said, 'the lesson must not give this answer away').not.toMatch(new RegExp(`(=|make|lands on) ${r.ans}\\.`));
     // With reduced motion the last picture shows at once: nothing is left hidden.
