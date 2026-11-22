@@ -195,3 +195,61 @@ for (const view of ['menu', 'story page', 'the end'] as const) {
     });
   }
 }
+
+// Read-along (SCRUM-496, Manish 22 Nov 2026): while the voice reads, the word it is on lights up with a ball above it.
+const SPEECH_EVENTS = (boundaries: boolean) => `window.__said=[];
+  window.SpeechSynthesisUtterance=class{constructor(t){this.text=t;this.rate=1;this.voice=null;this.lang='';}};
+  const SS=window.speechSynthesis;
+  SS.getVoices=()=>[{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'}];
+  SS.cancel=()=>{};
+  SS.speak=(u)=>{ window.__said.push(u.text); window.__u=u; setTimeout(()=>u.onstart&&u.onstart({}),10); };
+  window.__boundary=(i)=>{ const u=window.__u; const at=[...u.text.matchAll(/\\S+/g)][i].index; u.onboundary&&u.onboundary({name:'word',charIndex:at}); };
+  window.__end=()=>{ window.__u.onend&&window.__u.onend({}); };
+  window.__boundaries=${boundaries};`;
+
+test.describe('read-along marker', () => {
+  test('the page text is one span per word, and reads the same as before', async ({ page }) => {
+    await open(page);
+    await page.locator('#story-rain').click();
+    await expect(page.locator('#text')).toHaveText('Drip, drop. Here comes the rain.');
+    await expect(page.locator('#text .w')).toHaveText(['Drip,', 'drop.', 'Here', 'comes', 'the', 'rain.']);
+    await expect(page.locator('#text .w.now')).toHaveCount(0);
+  });
+
+  test('follows the voice word by word when the browser says where it is, and clears at the end', async ({ page }) => {
+    await page.addInitScript(SPEECH_EVENTS(true));
+    await page.goto('/stories.html');
+    await page.locator('#story-ball').click();
+    await page.locator('#readit').click();
+    expect(await said(page)).toEqual(['Dog has a red ball.']);
+    for (const [i, w] of [[1, 'has'], [3, 'red'], [4, 'ball.']] as const) {
+      await page.evaluate((n) => (window as any).__boundary(n), i);
+      await expect(page.locator('#text .w.now')).toHaveText(w);
+    }
+    await page.evaluate(() => (window as any).__end());
+    await expect(page.locator('#text .w.now')).toHaveCount(0);
+  });
+
+  test('moves on its own when the browser gives no word positions, and stops when the page turns', async ({ page }) => {
+    await page.addInitScript(SPEECH_EVENTS(false));
+    await page.goto('/stories.html');
+    await page.locator('#story-ball').click();
+    await page.locator('#readit').click();
+    await expect(page.locator('#text .w.now')).toHaveText('Dog');
+    await expect(page.locator('#text .w.now')).toHaveText('has');
+    await page.locator('#next').click();
+    await expect(page.locator('#text')).toHaveText('The ball rolls under the bed.');
+    await page.waitForTimeout(1500);
+    await expect(page.locator('#text .w.now')).toHaveCount(0);
+  });
+
+  test('the lit word has strong contrast and the page still passes the accessibility scan', async ({ page }) => {
+    await page.addInitScript(SPEECH_EVENTS(true));
+    await page.goto('/stories.html');
+    await page.locator('#story-ball').click();
+    await page.locator('#readit').click();
+    await page.evaluate(() => (window as any).__boundary(2));
+    await expect(page.locator('#text .w.now')).toHaveText('a');
+    expect(await axeViolations(page)).toEqual([]);
+  });
+});
