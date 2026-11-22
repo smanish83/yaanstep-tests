@@ -120,7 +120,6 @@ test.describe('Teens planner page', () => {
     await page.locator('#conf-1').selectOption('4');
     await page.locator('#topic-2').fill('Ratios');
     await page.locator('#conf-2').selectOption('1');
-    expect(await axeViolations(page, '#prep')).toEqual([]);
     await page.getByRole('button', { name: 'Yes, make my plan' }).click();
     await expect(page.locator('#prep-plan li')).toHaveCount(3);
     await expect(page.locator('#prep-plan li').first()).toHaveText('Monday, November 23, 5:00 PM, 40 min: Study Maths: Ratios. Flashcards.');
@@ -228,6 +227,10 @@ test.describe('Teens planner page', () => {
     await addEvent(page, 'Geometry midterm exam', '2026-11-30', '08:15');
     await page.locator('#topic-1').fill('Angles and parallel lines');
     await page.getByRole('button', { name: 'Yes, make my plan' }).click();
+    await expect(page.locator('#prep-plan li')).toHaveCount(7);
+    await page.clock.resume(); // the accessibility scan needs timers to run
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await axeViolations(page, 'main')).toEqual([]);
     // seven study blocks come first in Coming up, so open the exam from its own day page
     await page.locator('#day-events').getByRole('button', { name: 'Geometry midterm exam' }).click();
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
