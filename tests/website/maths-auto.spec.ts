@@ -63,9 +63,9 @@ test('age 6: a short lesson, then number hunt with adding, one story question in
   await expect(stage(page).locator('#auto-next')).toHaveText('Next time: a little harder.');
   expect((await level(page)).level, 'all right, story question too: two steps up').toBe(2);
   await stage(page).getByRole('button', { name: 'Keep going' }).click();
-  // The next step on the ladder is taking away, so a short lesson on it comes first.
-  await expect(title(page)).toHaveText('Lesson: see it with dots');
-  await expect(page.locator('#player-say')).toContainText('Taking away means some go away.');
+  // Two steps up the ladder is the dice game, still adding to 10, so no lesson this time.
+  await expect(title(page)).toHaveText('Question 1 of 5');
+  expect(await gameStyle(page)).toBe('dice');
   expect(errors).toEqual([]);
   expect(reqs.external('http://127.0.0.1:4173')).toEqual([]);
 });

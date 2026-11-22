@@ -4,7 +4,10 @@ import { site, url } from '../support/site';
 // Every link, picture, style sheet and script on every page must lead somewhere. SCRUM-386.
 
 /** Links that leave the site. A new one must be added here on purpose, after review. */
-const ALLOWED_EXTERNAL = [/^mailto:hello@yaanstep\.com(\?subject=[\w%.-]+)?$/];
+const ALLOWED_EXTERNAL = [
+  /^mailto:hello@yaanstep\.com(\?subject=[\w%.-]+)?$/,
+  /^https:\/\/yaanstep\.com\/([\w-]+\.html)?$/, // the page's own canonical address (sprouts.html since 22 Nov 2026)
+];
 
 test('no broken links or missing files on any page', async ({ page, request, baseURL }) => {
   const origin = new URL(baseURL!).origin;
