@@ -85,13 +85,46 @@ test('compare questions (SCRUM-447): over 1 000 "Which is bigger" questions, bot
       const s = await snapshot(page);
       if (s.kind === 'compare') {
         compares++;
-        for (const x of s.prompt.match(/\d+/g) ?? []) if (!s.options.includes(x)) problems.push(`"${s.prompt}" offers ${JSON.stringify(s.options)} without ${x}`);
+        const shown = s.prompt.match(/\d+/g) ?? [];
+        // Only the two numbers in the question are offered (review SCRUM-477, 22 Nov 2026).
+        if (JSON.stringify([...s.options].sort()) !== JSON.stringify([...shown].sort())) problems.push(`"${s.prompt}" offers ${JSON.stringify(s.options)}`);
       }
       await tap(page, rightAnswer(s));
       await next(page);
     }
   }
   expect(compares).toBe(1000);
+  expect(problems.slice(0, 30)).toEqual([]);
+});
+
+test('put in order and adding three numbers (ages 5 to 6): order offers only the three numbers asked about, and three numbers never add up to more than 20', async ({ page }) => {
+  await boot(page, { seed: 2211 });
+  await band(page, '5-6').click();
+  const problems: string[] = [];
+  let orders = 0, threes = 0;
+  for (const title of ['Put in order', 'Adding three numbers']) {
+    for (let n = 0; n < 20; n++) {
+      await openChapter(page, '5-6', CHAPTERS['5-6'].indexOf(title));
+      await lessonThenQuestions(page, true);
+      for (let i = 0; i < 10; i++) {
+        const s = await snapshot(page);
+        const nums = (s.prompt.match(/\d+/g) ?? []).map(Number);
+        if (s.kind === 'extreme') {
+          orders++;
+          if (JSON.stringify([...s.options].map(Number).sort((a, b) => a - b)) !== JSON.stringify([...nums].sort((a, b) => a - b))) problems.push(`"${s.prompt}" offers ${JSON.stringify(s.options)}`);
+        }
+        if (s.kind === 'add3') {
+          threes++;
+          const total = nums.reduce((a, b) => a + b, 0);
+          if (total > 20) problems.push(`"${s.prompt}" adds up to ${total}`);
+        }
+        await tap(page, rightAnswer(s));
+        await next(page);
+      }
+    }
+  }
+  expect(orders).toBe(200);
+  expect(threes).toBe(200);
   expect(problems.slice(0, 30)).toEqual([]);
 });
 
@@ -126,7 +159,7 @@ test('odd one out: a wrong tap is kind and switched off; after two misses the ri
   const right = rightAnswer(s).pick!;
   const wrongs = s.picks.map((_, k) => k).filter((k) => k !== right);
   await page.locator('#art .pick').nth(wrongs[0]).click();
-  await expect(page.locator('#msg')).toHaveText('Nearly! Look again.');
+  await expect(page.locator('#msg')).toHaveText('Not yet. Look again.');
   await expect(page.locator('#art .pick').nth(wrongs[0])).toBeDisabled();
   expect((await snapshot(page)).picks[right].glowing, 'the right shape must not glow after one miss').toBe(false);
   await page.locator('#art .pick').nth(wrongs[1]).click();
@@ -137,7 +170,7 @@ test('odd one out: a wrong tap is kind and switched off; after two misses the ri
   await expect(page.locator('#msg .good')).toContainText('You got it!');
 });
 
-test('every question kind that has a wrong tap keeps the question open, says "Nearly!", and costs no points', async ({ page }) => {
+test('every question kind that has a wrong tap keeps the question open, says "Not yet.", and costs no points', async ({ page }) => {
   await boot(page, { seed: 31 });
   const done = new Set<Kind>();
   for (const b of BANDS) {
@@ -152,7 +185,7 @@ test('every question kind that has a wrong tap keeps the question open, says "Ne
         done.add(s.kind);
         const before = +((await page.locator('#prog').innerText()).match(/(\d+) points/)?.[1] ?? NaN);
         await tap(page, wrong);
-        await expect(page.locator('#msg'), `${s.kind}: message after a wrong answer`).toContainText('Nearly!');
+        await expect(page.locator('#msg'), `${s.kind}: message after a wrong answer`).toContainText('Not yet.');
         await expect(page.locator('#msg')).not.toContainText(/wrong|incorrect|fail|bad|lose|lost|minus/i);
         expect((await snapshot(page)).prompt, `${s.kind}: the question must stay on screen after a wrong answer`).toBe(s.prompt);
         expect(+((await page.locator('#prog').innerText()).match(/(\d+) points/)?.[1] ?? NaN), `${s.kind}: points unchanged`).toBe(before);

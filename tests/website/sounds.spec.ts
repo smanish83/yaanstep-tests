@@ -6,6 +6,9 @@ import { knownBug } from '../support/known-bugs';
 // The expected content is written out here from doc 25, never read from the page's own code.
 // Speech is recorded by replacing speechSynthesis, so no sound is needed and the test sees exactly what would be said.
 
+/** Capital letter at the start of a sentence (review SCRUM-480, 22 Nov 2026). */
+const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
+
 test.beforeEach(() => { knownBug(); });
 
 /** Letter -> the example word the game says ("s, as in sock") and the picture words that start with that sound. */
@@ -106,7 +109,7 @@ test('first sounds: 40 rounds, each with one right picture, two pictures with a 
     }
     if ((await said(page)).at(-1) !== ask) problems.push(`${where}: spoke "${(await said(page)).at(-1)}"`);
     await page.locator(`#area button.choice[data-word="${right[0]}"]`).click();
-    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You found it!) ${right[0]} starts with ${letter}\\.$`));
+    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You found it!) ${cap(right[0])} starts with ${letter}\\.$`));
     await page.locator('#more').click();
   }
   expect(problems).toEqual([]);
@@ -125,7 +128,7 @@ test('first sounds: a wrong tap says "Not yet", names the picture, keeps the rou
   await expect(page.locator('body')).not.toContainText('Wrong');
   const right = words.find((w) => sound(w) === letter)!;
   await page.locator(`#area button.choice[data-word="${right}"]`).click();
-  await expect(page.locator('#sub')).toHaveText(`You found it! ${right} starts with ${letter}.`);
+  await expect(page.locator('#sub')).toHaveText(`You found it! ${cap(right)} starts with ${letter}.`);
 });
 
 test('word beats: 40 rounds, every word has its picture, the right count is accepted, and the split shown matches', async ({ page }) => {
@@ -144,7 +147,7 @@ test('word beats: 40 rounds, every word has its picture, the right count is acce
     await expect(page.locator('#ask')).toHaveText(`How many beats in ${word}? Say it slowly and clap.`);
     expect(await choices(page).count()).toBe(3);
     await page.locator(`#area button.choice[data-beats="${beats.length}"]`).click();
-    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You got it!) ${word} has ${beats.length} beats?\\.$`));
+    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You got it!) ${cap(word)} has ${beats.length} beats?\\.$`));
     const split = (await page.locator('#split').innerText()).trim();
     if (split !== beats.join(' · ')) problems.push(`${where}: shows "${split}", expected "${beats.join(' · ')}"`);
     await page.locator('#more').click();

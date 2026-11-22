@@ -381,6 +381,8 @@ export function problemsWith(s: Snapshot, band: string, allowed?: Kind[]): strin
     }
     if (s.kind === 'subtract' && nums[1] >= nums[0]) bad('the answer would be zero or negative');
     if (s.kind === 'add3') nums.forEach((n) => { if (n > 9 || n < 1) bad(`number ${n} outside 1..9`); });
+    if (s.kind === 'add3' && nums.reduce((a, b) => a + b, 0) > 20) bad('three numbers add up to more than 20 (grade 1 works within 20)');
+    if ((s.kind === 'compare' || s.kind === 'extreme') && s.options.length !== nums.length) bad(`offers ${JSON.stringify(s.options)}, not only the numbers in the question`);
     if (s.kind === 'missing' && nums[1] <= nums[0]) bad('the total is not bigger than the first number');
     if (s.kind === 'divide' && (nums[0] % nums[1] !== 0 || nums[1] < 2)) bad('does not divide exactly (or divides by 1)');
     if (s.kind === 'multiply' && nums.some((n) => n < 2)) bad('a factor is below 2');
@@ -462,8 +464,12 @@ export async function boot(page: Page, opts: { seed?: number; day?: number } = {
 
 export const band = (page: Page, b: string) => page.locator(`#bands button[data-b="${b}"]`);
 
-/** After a right answer the page waits 1.5 s then moves on; the fake clock skips the wait. */
-export async function next(page: Page) { await page.clock.runFor(1600); }
+/** After a right answer the page waits for the Next tap (it no longer moves on by itself, review SCRUM-477/478 of 22 Nov 2026). */
+export async function next(page: Page) {
+  const skip = page.locator('#msg #skip');
+  if (await skip.count()) await skip.click();
+  await page.clock.runFor(100);
+}
 
 /** The lesson: click Next until "Start the questions", then start. Returns the text of every lesson step. */
 export async function lessonThenQuestions(page: Page, skip = false): Promise<string[]> {
@@ -497,7 +503,7 @@ export async function playQuestions(page: Page, band: string, opts: { wrongFirst
     const wrong = i < (opts.wrongFirst ?? 0) ? wrongAnswer(s) : null;
     if (wrong) {
       await tap(page, wrong);
-      await expect(page.locator('#msg')).toContainText('Nearly!');
+      await expect(page.locator('#msg')).toContainText('Not yet.');
     }
     await tap(page, rightAnswer(s));
     await expect(page.locator('#msg')).toContainText(/Good job!|Great work!|Well done!|Super!|Brilliant!|You got it!/);

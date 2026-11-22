@@ -168,7 +168,7 @@ test('a wrong answer gets a kind hint, is switched off, takes nothing away, turn
   const wrongButton = page.locator('#opts button', { hasText: new RegExp(`^\\s*${wrong}\\s*$`) });
   const before = await points(page);
   await wrongButton.click();
-  await expect(page.locator('#msg')).toContainText('Nearly! Here is a hint: ');
+  await expect(page.locator('#msg')).toContainText('Not yet. Here is a hint: ');
   await expect(page.locator('#msg')).toContainText('Try again.');
   await expect(wrongButton).toBeDisabled();
   await expect(page.locator('#msg')).not.toContainText(/wrong|incorrect|fail|bad|lose|lost|minus|-\s?\d+ points/i);
@@ -182,7 +182,7 @@ test('a wrong answer gets a kind hint, is switched off, takes nothing away, turn
   await expect(page.locator('#bar .seg.miss')).toHaveCount(1); // the first segment stays red
 });
 
-test('a right answer first time earns 10 points, shows a clear "good job" message with a Next button, and moves on by itself after a pause', async ({ page }) => {
+test('a right answer first time earns 10 points, shows a clear "good job" message with a Next button, and waits for the tap (never moves on by itself)', async ({ page }) => {
   await questions(page, '7-8');
   await page.clock.pauseAt(new Date(dayTime(300).getTime() + 10 * 60_000)); // stop the clock: only runFor moves time, so the check cannot be hit by a slow machine
   const first = (await snapshot(page)).prompt;
@@ -191,11 +191,12 @@ test('a right answer first time earns 10 points, shows a clear "good job" messag
   await expect(page.locator('#msg .good')).toBeVisible();
   await expect(page.locator('#msg .good')).toHaveAttribute('role', 'status');
   await expect(page.locator('#msg')).toContainText(/Good job!|Great work!|Well done!|Super!|Brilliant!/);
-  await expect(page.locator('#msg .wait')).toContainText('Next puzzle');
+  await expect(page.locator('#msg .wait #skip')).toHaveText('Next');
+  await expect(page.locator('#msg .spin')).toHaveCount(0);
   expect(await points(page)).toBe(before + 10);
-  await page.clock.runFor(1000);
-  expect((await snapshot(page)).prompt, 'still the same question before the pause ends').toBe(first);
-  await page.clock.runFor(700);
+  await page.clock.runFor(10_000);
+  expect((await snapshot(page)).prompt, 'still the same question after 10 seconds: nothing plays on by itself').toBe(first);
+  await page.locator('#skip').click();
   await expect(page.locator('#bar .seg.now')).toBeVisible();
   await expect(page.locator('#msg .good')).toHaveCount(0);
 });
@@ -472,7 +473,7 @@ async function playRight(page: Page, n: number) {
 test('stretch break: appears once, after question 5 of 10, offers "I am ready" and "Skip the break", costs nothing and the chapter still has ten questions', async ({ page }) => {
   await questions(page, '7-8');
   await playRight(page, 5);
-  await expect(page.locator('#q')).toHaveText('Stretch break! Reach up high, then hop 5 times.');
+  await expect(page.locator('#q')).toHaveText('Stretch break! Find a clear space, then reach up high and hop 5 times.');
   await expect(page.locator('#msg')).toContainText('Halfway there');
   const buttons = page.locator('#opts button');
   expect((await buttons.allInnerTexts()).map((t) => t.trim())).toEqual(['I am ready', 'Skip the break']);
@@ -501,7 +502,7 @@ test('stretch break: "Skip the break" goes straight on, and the break does not h
   expect((await snapshot(page)).options.length).toBeGreaterThan(1);
 });
 
-test('growing garden: a drop of water for each finished set, a flower for every four drops, and a bonus drop on a new day', async ({ page }) => {
+test('growing garden: a drop of water for each finished set, a flower for every four drops, and no extra drop for coming back on a new day', async ({ page }) => {
   await boot(page, { day: 300 });
   await band(page, '5-6').click();
   const finishAndNext = async (last = false) => {
@@ -523,12 +524,15 @@ test('growing garden: a drop of water for each finished set, a flower for every 
   await finishAndNext(true);
   expect(await gardenLabel(), 'four drops make a flower').toBe('Your garden: 1 flower');
   expect(JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!).w).toBe(4);
-  // next day: "Welcome back" and two drops
+  // next day: still one drop, with no "come back tomorrow" pull (review SCRUM-477/478, 22 Nov 2026)
+  await expect(page.locator('#msg')).not.toContainText('Come back tomorrow');
+  await expect(page.locator('#msg')).toContainText('Your garden grows a little every time you finish a chapter.');
   await page.clock.setSystemTime(dayTime(301));
   await page.locator('#b1').click(); await lessonThenQuestions(page, true);
   await finishAndNext(true);
-  await expect(page.locator('#msg')).toContainText('Welcome back! Two drops of water for your garden today.');
-  expect(JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!).w, 'two drops on a new day').toBe(6);
+  await expect(page.locator('#msg')).toContainText('A drop of water for your garden!');
+  await expect(page.locator('#msg')).not.toContainText('Welcome back');
+  expect(JSON.parse((await page.evaluate((k) => localStorage.getItem(k), GARDEN_KEY))!).w, 'one drop on a new day too').toBe(5);
   expect(await gardenLabel()).toBe('Your garden: 1 flower and one growing');
 });
 

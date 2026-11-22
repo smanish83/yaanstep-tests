@@ -12,7 +12,7 @@ const MOVES = [
   'Stand up and reach up high, like a tall tree.',
   'Hop like a frog: three small hops.',
   'Wiggle your fingers, then wiggle your toes.',
-  'March on the spot and count to ten.',
+  'March in place and count to ten.',
   'Shrug your shoulders up and down three times.',
   'Clap your hands above your head, then by your knees.',
 ];
@@ -38,8 +38,9 @@ test('after a set, All done offers a movement break and other games, with no tim
   const errors = watchErrors(page);
   const reqs = watchRequests(page);
   await finishWordBeats(page);
-  const move = (await page.locator('#moveit').innerText()).replace(/^Move break:\s*/, '').replace(/\s*Grown-up: you can do it together\.$/, '');
+  const move = (await page.locator('#moveit').innerText()).replace(/^Move break:\s*Put the screen down and find a clear space\.\s*/, '').replace(/\s*You can also do it sitting down\. Grown-up: you can do it together\.$/, '');
   expect(MOVES).toContain(move);
+  await expect(page.locator('.nexthead')).toHaveText('After your break, you could try:');
   const done = await page.locator('#alldone').innerText();
   expect(done).not.toMatch(/second|minute|timer|streak|points|hurry|lose|miss/i);
   await expect(page.locator('#nextgames button')).toHaveText(['First sounds']);

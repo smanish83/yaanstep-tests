@@ -5,6 +5,9 @@ import { knownBug } from '../support/known-bugs';
 // Rhymes and letter teams page (rhymes.html, reading foundations SCRUM-472 items 3 and 4, doc 25; added 22 Nov 2026).
 // The rhyme endings and the sounds in each picture word are written out here, never read from the page's own code.
 
+/** Capital letter at the start of a sentence (review SCRUM-480, 22 Nov 2026). */
+const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
+
 test.beforeEach(() => { knownBug(); });
 
 /** How each picture word that may appear as a rhyme choice ends. Words rhyme when the endings match. */
@@ -42,7 +45,7 @@ const HEARS: Record<string, string[]> = {
 const POEMS: { title: string; pairs: [string, string][] }[] = [
   { title: 'Little cat', pairs: [['cat', 'hat'], ['out', 'about']] },
   { title: 'Frog on a log', pairs: [['frog', 'log'], ['goes', 'toes']] },
-  { title: 'Goat in a boat', pairs: [['sea', 'bee'], ['Hum', 'mum']] },
+  { title: 'Goat in a boat', pairs: [['sea', 'bee'], ['Hum', 'drum']] },
   { title: 'The big red bus', pairs: [['bus', 'us'], ['shop', 'stop']] },
 ];
 
@@ -111,7 +114,7 @@ test('rhymes: 50 rounds, the shown word has a picture, exactly one choice rhymes
     const rhyming = ws.filter((w) => ENDING[w] === ENDING[target]);
     if (rhyming.length !== 1) { problems.push(`${where}: ${rhyming.length} choices rhyme, expected 1`); continue; }
     await page.locator(`#area button.choice[data-word="${rhyming[0]}"]`).click();
-    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You found it!) ${target} and ${rhyming[0]} rhyme\\.$`));
+    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You found it!) ${cap(target)} and ${rhyming[0]} rhyme\\.$`));
     await page.locator('#more').click();
   }
   expect(problems).toEqual([]);
@@ -130,7 +133,7 @@ test('rhymes: a wrong tap says "Not yet", names the picture, keeps the round ope
   await expect(page.locator('body')).not.toContainText('✗');
   const right = ws.find((w) => ENDING[w] === ENDING[target])!;
   await page.locator(`#area button.choice[data-word="${right}"]`).click();
-  await expect(page.locator('#sub')).toHaveText(`You found it! ${target} and ${right} rhyme.`);
+  await expect(page.locator('#sub')).toHaveText(`You found it! ${cap(target)} and ${right} rhyme.`);
 });
 
 test('rhyme time: four original rhymes, rhyming words in bold, read aloud only when asked, then "All done for now"', async ({ page }) => {
@@ -183,7 +186,7 @@ test('letter teams: 60 rounds, one right picture that has the team, two that hav
       if (HEARS[w].includes(team)) problems.push(`${where}: wrong choice ${w} has the ${team} sound`);
     }
     await page.locator(`#area button.choice[data-word="${right[0]}"]`).click();
-    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You found it!) ${right[0]} has ${team}\\.$`));
+    await expect(page.locator('#sub')).toHaveText(new RegExp(`^(Yes!|You found it!) ${cap(right[0])} has ${team}\\.$`));
     const label = page.locator(`#area button.choice[data-word="${right[0]}"] .w`);
     await expect(label).toHaveText(right[0]);
     await expect(label.locator('b')).toHaveText(team);

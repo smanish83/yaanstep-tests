@@ -141,7 +141,7 @@ test('fill the gap: a wrong word says "Not yet" with a hint, keeps the round ope
   const item = SENTENCES[sentence];
   const words = await choices(page).evaluateAll((bs) => bs.map((b) => b.getAttribute('data-word') ?? ''));
   await page.locator(`#area button.choice[data-word="${words.find((w) => w !== item.answer)}"]`).click();
-  await expect(page.locator('#sub')).toHaveText(/^Not yet\. (Look at the picture\.|What does a|Where can a)/);
+  await expect(page.locator('#sub')).toHaveText(/^Not yet\. (Look at the picture\.|What does a|Where is the)/);
   await expect(page.locator('#more')).toBeHidden();
   await expect(page.locator('body')).not.toContainText('✗');
   await page.locator(`#area button.choice[data-word="${item.answer}"]`).click();

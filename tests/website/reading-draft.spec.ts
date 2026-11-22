@@ -12,7 +12,7 @@ const LETTER_WORD: Record<string, string> = { s: 'sun', a: 'apple', t: 'tiger', 
 const SET1 = ['s', 'a', 't', 'p', 'i', 'n'];
 const BLEND_SET1 = ['sat', 'pat', 'tap', 'pan', 'pin', 'tin', 'sit', 'sip', 'tip', 'nap'];
 const BLEND_ALL = [...BLEND_SET1, 'mat', 'map', 'dad', 'dig', 'dog', 'got', 'cat', 'cap', 'pot', 'kid', 'red', 'run', 'hat', 'hot', 'bed', 'bus', 'bug', 'fun', 'fit', 'hen'];
-const COMMON: Record<string, string> = { the: 'The dog runs.', and: 'Cats and dogs.', is: 'The sun is hot.', to: 'I go to bed.', you: 'You can hop.', it: 'It is red.', can: 'I can jump.', see: 'I see a cat.', we: 'We can play.', my: 'This is my hat.', a: 'A dog can run.', i: 'I am happy.', in: 'The cat is in the box.', go: 'Let us go to the park.', no: 'No, thank you.', me: 'Play with me.', he: 'He has a red hat.', she: 'She has a big cup.', on: 'The book is on the bed.', up: 'Look up at the star.' };
+const COMMON: Record<string, string> = { the: 'The dog runs.', and: 'I like cats and dogs.', is: 'The sun is hot.', to: 'I go to bed.', you: 'You can hop.', it: 'It is red.', can: 'I can jump.', see: 'I see a cat.', we: 'We can play.', my: 'This is my hat.', a: 'A dog can run.', i: 'I am happy.', in: 'The cat is in the box.', go: 'Let us go to the park.', no: 'No, thank you.', me: 'Play with me.', he: 'He has a red hat.', she: 'She has a big cup.', on: 'The book is on the bed.', up: 'Look up at the star.' };
 const PICTURE_SET1 = ['cat', 'dog', 'sun', 'ball', 'moon', 'star'];
 
 async function open(page: Page, opts: { limit?: string; speed?: string } = {}) {
@@ -193,10 +193,11 @@ test.describe('calm rules', () => {
     await expect(page.locator('#alldone')).toContainText('All done for now');
     await page.locator('#keep').click();
     await expect(page.locator('#alldone')).toBeHidden();
-    // Observed behaviour: "Keep playing" switches the break off for the rest of the visit (the page sets the count to -1000).
-    for (let i = 0; i < 60; i++) await page.locator('.tile').nth(i % 4).click();
+    // "Keep playing" starts the count again, so the break comes back after another 15 taps (review SCRUM-477, 22 Nov 2026).
+    for (let i = 0; i < 14; i++) await page.locator('.tile').nth(i % 4).click();
     await expect(page.locator('#alldone')).toBeHidden();
-    await page.evaluate(() => { (document.getElementById('alldone') as HTMLElement).hidden = false; }); // make the Finish button reachable
+    await page.locator('.tile').first().click();
+    await expect(page.locator('#alldone')).toBeVisible();
     await page.locator('#stop').click();
     await expect(page.locator('#menu')).toBeVisible();
   });
