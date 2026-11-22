@@ -1,15 +1,14 @@
 /**
  * One place that says what the website under test is expected to look like.
  *
- * SITE_PROFILE=live (default): the site as it is on main of smanish83/yaanstep-website today.
- * SITE_PROFILE=next: the build that is waiting to be published (shared menu, Products page, four themes).
- *
- * When the "next" build is published, copy its values into "live" in the same change and delete "next".
+ * One profile: the site as published on main of smanish83/yaanstep-website (shared menu, Products page,
+ * four themes). The old "next" profile became "live" when website v2 went out (22 Nov 2026, SCRUM-481).
+ * Add a second profile again only while a build that changes these values waits to be published.
  * Owner: QA (Priya Raman, QA Automation Engineer, AI). Gate: Marcus Chen (QA Lead, AI).
  */
 export interface MenuItem { label: string; href: string }
 export interface SiteProfile {
-  name: 'live' | 'next';
+  name: 'live';
   pages: string[];
   menu: MenuItem[];
   /** true: the menu must be exactly these items in this order. false: these items must all be present. */
@@ -21,24 +20,6 @@ export interface SiteProfile {
 
 const live: SiteProfile = {
   name: 'live',
-  pages: ['index', 'how-it-works', 'try-it', 'time-calculator', 'learning', 'pricing', 'team', 'testers', 'privacy', 'terms', 'accessibility'],
-  menu: [
-    { label: 'Home', href: 'index.html' },
-    { label: 'How it works', href: 'how-it-works.html' },
-    { label: 'Try it', href: 'try-it.html' },
-    { label: 'Time calculator', href: 'time-calculator.html' },
-    { label: 'Learning', href: 'learning.html' },
-    { label: 'Pricing', href: 'pricing.html' },
-    { label: 'Team', href: 'team.html' },
-    { label: 'Join the testers', href: 'testers.html' },
-  ],
-  exactMenu: true,
-  themes: [],
-  allowedStorageKeys: [],
-};
-
-const next: SiteProfile = {
-  name: 'next',
   pages: ['index', 'products', 'how-it-works', 'team', 'testers', 'try-it', 'time-calculator', 'learning', 'pricing', 'privacy', 'terms', 'accessibility'],
   menu: [
     { label: 'Home', href: 'index.html' },
@@ -47,10 +28,10 @@ const next: SiteProfile = {
     { label: 'Team', href: 'team.html' },
     { label: 'Join the testers', href: 'testers.html' },
   ],
-  exactMenu: false, // QA has not seen this build yet; tighten to true once it has.
+  exactMenu: true,
   themes: ['', 'sunrise', 'midnight', 'bloom'],
   allowedStorageKeys: ['yaanstep-theme'],
 };
 
-export const site: SiteProfile = process.env.SITE_PROFILE === 'next' ? next : live;
+export const site: SiteProfile = live;
 export const url = (page: string) => `/${page}.html`;

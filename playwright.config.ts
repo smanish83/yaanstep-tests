@@ -4,7 +4,6 @@ import { existsSync } from 'node:fs';
 // What to test:
 //   SITE_DIR      folder with the website files (default: ../yaanstep-website). A small local server is started for it.
 //   BASE_URL      test a real address instead, for example https://yaanstep.com
-//   SITE_PROFILE  "live" (default) = the site as published today; "next" = the build waiting to be published.
 // See tests/support/site.ts.
 const siteDir = process.env.SITE_DIR ?? '../yaanstep-website';
 const baseURL = process.env.BASE_URL ?? 'http://127.0.0.1:4173';

@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test';
 import { site, url } from '../support/site';
 import { axeViolations, expectNothingStored } from '../support/checks';
 
-// Theme switcher (SCRUM-400, SCRUM-401). Only in the build that is waiting to be published.
+// Theme switcher (SCRUM-400, SCRUM-401).
 
 test.describe('theme switcher', () => {
-  test.skip(site.themes.length === 0, `The "${site.name}" site has no theme switcher. Run with SITE_PROFILE=next against the new build.`);
+  test.skip(site.themes.length === 0, `The "${site.name}" site has no theme switcher.`);
 
   test('offers the four approved themes as colour buttons, changes the page, and remembers the choice on other pages without a cookie', async ({ page, context }) => {
     await page.goto(url('index'));

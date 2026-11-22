@@ -16,14 +16,7 @@ npm run summary                            # short summary of the last run
 npm run test:report                        # open the full HTML report
 ```
 
-`SITE_PROFILE` says which site the tests expect (see `tests/support/site.ts`):
-
-| Value | Meaning |
-| --- | --- |
-| `live` (default) | The site as published on main of `smanish83/yaanstep-website`: 11 pages, 8-item menu, no themes. |
-| `next` | The build waiting to be published: shared menu, Products page, four themes. QA has not seen this build yet, so its expectations are looser. |
-
-When the new build is published, copy the `next` values into `live` in the same change and delete `next`.
+`tests/support/site.ts` says what the published site should look like (pages, exact shared menu, four themes, allowed storage keys). The old `next` profile became the only profile when website v2 went out on 22 Nov 2026. Add a second profile only while a build that changes these values waits to be published.
 
 ## What is tested (website)
 
@@ -36,7 +29,7 @@ When the new build is published, copy the `next` values into `live` in the same 
 | `tests/website/try-it.spec.ts` | Try it demo: every step is an approved step word for word (doc 05, doc 11), the 10 second countdown with a controlled clock, Not now, keyboard, focus, no shame wording, nothing stored or sent. |
 | `tests/website/time-calculator.spec.ts` | Time calculator: hand-worked numbers, bad input, keyboard, labels, nothing stored or sent. |
 | `tests/website/learning.spec.ts` | Learning page: 18,000 generated story questions and 18,000 number cards checked against an answer worked out separately; both games played to the end by tap, keyboard and mouse drag; all five maths styles; mistake hints in order (words, then dots); lesson steps; Keep going; game mode and Exit; focus and screen-reader hooks; layout and axe scan in every game view; nothing stored or sent. |
-| `tests/website/themes.spec.ts` | Theme switcher (only with `SITE_PROFILE=next`). |
+| `tests/website/themes.spec.ts` | Theme switcher: four themes, remembered without a cookie. |
 
 Screen sizes: desktop (1280 px), phone (Pixel 7 size), and tablet (820 px) for layout and the Learning games.
 

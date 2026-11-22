@@ -37,12 +37,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Run the suite (next profile)
+      - name: Run the suite
         run: npx playwright test --workers=4
         env:
           CI: '1'
           SITE_DIR: site
-          SITE_PROFILE: next
       - name: Summary
         if: always()
         run: node scripts/summary.mjs || true

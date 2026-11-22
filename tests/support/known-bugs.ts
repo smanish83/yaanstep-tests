@@ -11,7 +11,7 @@ import { site } from './site';
  * Rule (Marcus): nothing goes in this list without a Jira bug. High bugs still block a release even
  * though the run shows them as expected.
  */
-interface KnownBug { jira: string; profile: 'live' | 'next' | 'both'; title: RegExp; note: string }
+interface KnownBug { jira: string; profile: 'live' | 'both'; title: RegExp; note: string }
 
 export const KNOWN_BUGS: KnownBug[] = [
   // SCRUM-418 (footer link contrast) was fixed on main: footer links now use --teal-dark, 6.25:1. Removed 22 Nov 2026.
