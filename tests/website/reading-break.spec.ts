@@ -43,7 +43,7 @@ test('after a set, All done offers a movement break and other games, with no tim
   const done = await page.locator('#alldone').innerText();
   expect(done).not.toMatch(/second|minute|timer|streak|points|hurry|lose|miss/i);
   await expect(page.locator('#nextgames button')).toHaveText(['First sounds']);
-  expect(await page.locator('#nextgames a').evaluateAll((as) => as.map((a) => a.getAttribute('href')))).toEqual(['rhymes.html', 'sentences.html']);
+  expect(await page.locator('#nextgames a').evaluateAll((as) => as.map((a) => a.getAttribute('href')))).toEqual(['rhymes.html', 'sentences.html', 'stories.html']);
   await page.locator('#nextgames button').click();
   await expect(page.locator('#title')).toHaveText('First sounds');
   await expect(page.locator('#count')).toHaveText('Round 1 of 8');
