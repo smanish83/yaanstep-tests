@@ -13,11 +13,11 @@ type Round = { game: 'bonds' | 'take' | 'track'; ans: number; whole?: number; a?
 /** Reads a round's words and works it out. Returns null if the words fit no planned kind. */
 function solve(text: string): Round | null {
   let m: RegExpMatchArray | null;
-  if ((m = text.match(/^There are (\d+) teal counters and (\d+) orange counters\. How many counters in all\?$/))) {
+  if ((m = text.match(/^We have (\d+) teal counters? and (\d+) orange counters?\. How many counters in all\?$/))) {
     const a = +m[1], b = +m[2];
     return { game: 'bonds', a, b, whole: a + b, ans: a + b };
   }
-  if ((m = text.match(/^There are (\d+) counters\. (\d+) are teal\. How many are orange\?$/))) {
+  if ((m = text.match(/^There are (\d+) counters\. (\d+) (?:is|are) teal\. How many are orange\?$/))) {
     const w = +m[1], a = +m[2];
     return { game: 'bonds', a, b: w - a, whole: w, ans: w - a };
   }
@@ -25,7 +25,7 @@ function solve(text: string): Round | null {
     const t = +m[1], k = +m[2];
     return { game: 'take', t, k, ans: t - k };
   }
-  if ((m = text.match(/^The frog starts on (\d+)\. It hops (\d+) (on|back)\. Where does it land\?$/))) {
+  if ((m = text.match(/^The frog starts on (\d+)\. It hops (\d+) squares? (on|back)\. Where does it land\?$/))) {
     const s = +m[1], h = +m[2], add = m[3] === 'on';
     return { game: 'track', start: s, hops: h, add, ans: add ? s + h : s - h };
   }
@@ -47,6 +47,8 @@ async function playOne(page: Page, game: string, i: number, wrongFirst = false) 
   const text = (await page.locator('#say').innerText()).trim();
   const r = solve(text);
   expect(r, `words fit a planned kind: ${text}`).not.toBeNull();
+  expect(text, 'one thing is never written as plural').not.toMatch(/\b1 (teal counters|orange counters|squares|are)\b/);
+  expect(text, 'more than one thing is never written as singular').not.toMatch(/\b([02-9]|1\d) (teal counter|orange counter|square)\b(?!s)|\b([02-9]|1\d) is\b/);
   expect(r!.game).toBe(game);
   expect(r!.ans, text).toBeGreaterThanOrEqual(0);
 
