@@ -23,7 +23,7 @@ async function playChapter(page: Page, b: string, title: string, label: string, 
     await tap(page, rightAnswer(s));
     await next(page);
   }
-  if ((await page.locator('#q').innerText()).trim() !== 'Chapter complete! 10 of 10 right first time.') problems.push(`[${label}] expected the chapter-complete screen after ten right answers, saw "${await page.locator('#q').innerText()}"`);
+  if (!/^Chapter complete! (You got 10 on the first try|10 of 10 right first time)\.$/.test((await page.locator("#q").innerText()).trim())) problems.push(`[${label}] expected the chapter-complete screen after ten right answers, saw "${await page.locator('#q').innerText()}"`);
 }
 
 for (const [bi, b] of BANDS.entries()) {

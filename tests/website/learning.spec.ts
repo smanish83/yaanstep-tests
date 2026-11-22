@@ -26,7 +26,7 @@ test.describe('what the page tells a parent', () => {
     await expect(notice).toContainText("Made by Yaanstep's AI team.");
     await expect(notice).toContainText('Not tested with children.');
     await expect(notice).toContainText('Not a replacement for school.');
-    await expect(notice).toContainText('No sign-in. Nothing is saved or sent. No cookies, no trackers.');
+    await expect(notice).toContainText('No sign-in. Nothing is sent. No cookies, no trackers, no ads.');
   });
 
   test('the footer says the app is 13 and up and these lessons are for a parent and child together', async ({ page }) => {

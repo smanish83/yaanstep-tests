@@ -205,7 +205,7 @@ export function wrongAnswer(s: Snapshot): { text?: string; card?: number; pick?:
 }
 
 export async function tap(page: Page, a: { text?: string; card?: number; pick?: number; cells?: number }) {
-  if (a.text !== undefined) await page.locator('#opts button', { hasText: new RegExp(`^\\s*${a.text}\\s*$`) }).click();
+  if (a.text !== undefined) await page.locator('#opts button', { hasText: new RegExp(`^\\s*${a.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }).click();
   else if (a.card !== undefined) await page.locator('#art .card').nth(a.card).click();
   else if (a.cells !== undefined) for (let i = 0; i < a.cells; i++) await page.locator('#art button.cell').nth(i).click();
   else await page.locator('#art .pick').nth(a.pick!).click();

@@ -50,7 +50,7 @@ test.describe('theme switcher', () => {
 
   test('the Privacy page says the theme choice is remembered in the browser', async ({ page }) => {
     await page.goto(url('privacy'));
-    await expect(page.locator('main')).toContainText('It remembers your theme choice in your browser.');
+    await expect(page.locator('main')).toContainText('It remembers your theme choice, and progress in the learning games, only in your browser.');
   });
 
   for (const theme of site.themes) {

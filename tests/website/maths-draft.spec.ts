@@ -99,7 +99,7 @@ for (const b of BANDS) {
     for (const [ci, title] of CHAPTERS[b].entries()) {
       await openChapter(page, b, ci);
       const first = (await page.locator('#q').innerText()).trim();
-      if (first !== `Let us learn: ${title}.`) problems.push(`chapter "${title}": first lesson step says "${first}"`);
+      if (first !== `Let us learn: ${title.replace(/[.?!]+$/, '')}.`) problems.push(`chapter "${title}": first lesson step says "${first}"`);
       const steps: string[] = [];
       for (let i = 0; i < 30; i++) {
         const say = (await page.locator('#q').innerText()).trim();
@@ -132,7 +132,7 @@ test('"Skip the lesson" goes straight to the questions; a chapter has ten questi
   await expect(page.locator('#bar .seg')).toHaveCount(10);
   const seen = await playQuestions(page, '7-8', { limit: 12 });
   expect(seen, 'a chapter has exactly ten questions').toHaveLength(10);
-  await expect(page.locator('#q')).toHaveText('Chapter complete! 10 of 10 right first time.');
+  await expect(page.locator('#q')).toHaveText(/^Chapter complete! (You got 10 on the first try|10 of 10 right first time)\.$/);
   await expect(page.locator('#msg')).toContainText('Next chapter: Taking away within 100');
   await expect(page.locator('#b1')).toHaveText('Next chapter');
   await expect(page.locator('#b2')).toHaveText('Play a mixed game instead'); // changed 17 Nov: the mixed game is offered after a passed chapter
@@ -141,7 +141,7 @@ test('"Skip the lesson" goes straight to the questions; a chapter has ten questi
 test('passing needs 8 of 10 right first time: 8 passes and unlocks the next chapter; 7 does not and says nothing is lost', async ({ page }) => {
   await questions(page, '7-8');
   await playQuestions(page, '7-8', { wrongFirst: 3 }); // 7 right first time
-  await expect(page.locator('#q')).toHaveText('7 of 10 right first time. Nice trying!');
+  await expect(page.locator('#q')).toHaveText('7 of 10 right first time. Good effort!');
   await expect(page.locator('#msg')).toContainText('No points are lost');
   await expect(page.locator('#b1')).toHaveText('Watch the lesson again');
   await expect(page.locator('#b2')).toHaveText('Try 10 more');
@@ -352,7 +352,7 @@ test('a browser that blocks storage still works for the session (no crash)', asy
   });
   await questions(page, '5-6');
   await playQuestions(page, '5-6');
-  await expect(page.locator('#q')).toContainText('right first time');
+  await expect(page.locator('#q')).toContainText(/right first time|on the first try/);
   expect(errors).toEqual([]);
 });
 
@@ -431,7 +431,7 @@ test('maths draft: "Hear it" speaks words, not symbols ("12 - 4" must not be rea
   await page.addInitScript(() => {
     (window as any).__spoken = [];
     (window as any).SpeechSynthesisUtterance = function (t: string) { this.text = t; };
-    Object.defineProperty(window, 'speechSynthesis', { value: { cancel() {}, speak(u: any) { (window as any).__spoken.push(u.text); } } });
+    Object.defineProperty(window, 'speechSynthesis', { value: { getVoices() { return []; }, cancel() {}, speak(u: any) { (window as any).__spoken.push(u.text); } } });
   });
   const problems: string[] = [];
   const hear = async (what: string) => {
@@ -486,7 +486,7 @@ test('stretch break: appears once, after question 5 of 10, offers "I am ready" a
   await expect(page.locator('#q')).not.toContainText('Stretch break');
   const rest = await playQuestions(page, '7-8', { limit: 12 });
   expect(rest, 'five questions after the break, and no second break').toHaveLength(5);
-  await expect(page.locator('#q')).toHaveText('Chapter complete! 10 of 10 right first time.');
+  await expect(page.locator('#q')).toHaveText(/^Chapter complete! (You got 10 on the first try|10 of 10 right first time)\.$/);
 });
 
 test('stretch break: "Skip the break" goes straight on, and the break does not hide the progress bar', async ({ page }) => {
