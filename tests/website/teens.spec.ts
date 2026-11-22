@@ -9,7 +9,9 @@ const NOW = new Date('2026-11-23T10:00:00'); // a Monday, in the browser's own t
 const T = (page: Page) => page.evaluate(() => (window as any).YS_TEENS);
 
 async function open(page: Page) {
-  await page.clock.install({ time: NOW });
+  // the clock stands still at NOW until a test moves it, so countdowns are exact
+  await page.clock.install({ time: new Date(NOW.getTime() - 1000) });
+  await page.clock.pauseAt(NOW);
   await page.goto('/teens.html');
   await expect(page.locator('#app')).toBeVisible();
 }
@@ -226,7 +228,8 @@ test.describe('Teens planner page', () => {
     await addEvent(page, 'Geometry midterm exam', '2026-11-30', '08:15');
     await page.locator('#topic-1').fill('Angles and parallel lines');
     await page.getByRole('button', { name: 'Yes, make my plan' }).click();
-    await page.locator('#upcoming').getByRole('button', { name: 'Geometry midterm exam' }).click();
+    // seven study blocks come first in Coming up, so open the exam from its own day page
+    await page.locator('#day-events').getByRole('button', { name: 'Geometry midterm exam' }).click();
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
     expect(await axeViolations(page, 'main')).toEqual([]);
   });
