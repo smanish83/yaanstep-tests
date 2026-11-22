@@ -14,10 +14,7 @@ import { site } from './site';
 interface KnownBug { jira: string; profile: 'live' | 'next' | 'both'; title: RegExp; note: string }
 
 export const KNOWN_BUGS: KnownBug[] = [
-  {
-    jira: 'SCRUM-418', profile: 'live', title: /^page [\w-]+ › accessibility scan/,
-    note: 'footer links have contrast 4.34:1 (AA needs 4.5:1) on every page; fix exists but is not published',
-  },
+  // SCRUM-418 (footer link contrast) was fixed on main: footer links now use --teal-dark, 6.25:1. Removed 22 Nov 2026.
 ];
 
 /** Call at the top of a test body. */

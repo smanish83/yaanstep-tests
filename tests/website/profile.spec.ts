@@ -9,22 +9,23 @@ import { knownBug } from '../support/known-bugs';
 test.beforeEach(() => { knownBug(); });
 
 const KEY = 'ys-profile';
-const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Reading', 'Story time', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams'];
+const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams'];
 /** The games each age should see on the Learning page, written out from the age tags on the cards. */
 const FITS: Record<number, string[]> = {
   3: ['Maths', 'Reading', 'Story time', 'Rhymes and letter teams'],
   4: ['Maths', 'Reading', 'Story time', 'Sounds and beats', 'Rhymes and letter teams'],
-  5: GAMES,
-  6: GAMES,
-  7: ['Maths', 'Bar models', 'Number bonds', 'Reading', 'Story time', 'Parts of a sentence', 'Rhymes and letter teams'],
-  8: ['Maths', 'Bar models'],
+  5: GAMES.filter((g) => g !== 'Tens and ones' && g !== 'Fractions'),
+  6: GAMES.filter((g) => g !== 'Fractions'),
+  7: ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Parts of a sentence', 'Rhymes and letter teams'],
+  8: ['Maths', 'Bar models', 'Tens and ones', 'Fractions'],
+  9: ['Maths', 'Bar models', 'Fractions'],
   12: ['Maths', 'Bar models'],
 };
 const STAGE: Record<number, string> = {
   3: 'seed', 4: 'seed', 5: 'sprout', 6: 'sprout', 7: 'small plant', 8: 'small plant',
   9: 'plant with a bud', 10: 'plant with a bud', 11: 'plant in flower', 12: 'plant in flower',
 };
-const LEARNING_PAGES = ['learning', 'maths', 'bar-models', 'number-bonds', 'reading', 'sounds', 'rhymes', 'sentences', 'stories'];
+const LEARNING_PAGES = ['learning', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories'];
 
 const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
@@ -81,12 +82,8 @@ for (const age of Object.keys(FITS).map(Number)) {
       await expect(page.locator('#ys-showall')).toHaveText(`Only age ${age}`);
       await page.locator('#ys-showall').click();
       expect(await visibleGames(page)).toEqual(FITS[age]);
-    } else if (age >= 6) {
-      // Every game fits, but the Same and different lesson (ages 3 to 4) is hidden, so the bar still shows.
-      await expect(page.locator('#ys-filter-text')).toHaveText(`Showing what fits age ${age}.`);
     } else {
-      // Age 5: every game fits and neither lesson card fits, so nothing is hidden and there is no bar.
-      await expect(page.locator('#ys-filter')).toHaveCount(0);
+      throw new Error(`no age should see every game now (age ${age})`);
     }
   });
 }
