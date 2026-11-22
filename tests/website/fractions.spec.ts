@@ -118,7 +118,7 @@ test('is a public page linked from Learning: labelled, no errors, no outside req
   await open(page);
   expect(await page.locator('meta[name=robots][content*=noindex]').count()).toBe(0);
   await expect(page.locator('h1')).toHaveText('Fractions');
-  for (const t of ['our own', 'AI team', 'Not yet tested with children', 'nothing is saved']) await expect(page.locator('body')).toContainText(t);
+  for (const t of ['our own', 'AI team', 'Not yet tested with children', 'Only points are kept']) await expect(page.locator('body')).toContainText(t);
   expect(await (await request.get('/sprouts.html')).text()).toContain('href="fractions.html"');
   await page.locator('#play-shade').click();
   await playOne(page, 'shade', 0);

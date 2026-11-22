@@ -155,7 +155,7 @@ test('Brain games: loads with no errors, nothing from other sites, nothing store
   const intro = await page.locator('.note').first().innerText();
   expect(intro).toMatch(/ages 3 to 8/i);
   expect(intro).toMatch(/free/i);
-  expect(intro).toMatch(/nothing is saved on this device/i);
+  expect(intro).toMatch(/only points are kept on this device/i);
   await expect(page.locator('#level-note')).toContainText('set in the middle');
   expect(await axeViolations(page)).toEqual([]);
   await page.setViewportSize({ width: 320, height: 700 });
@@ -307,9 +307,11 @@ for (const age of [0, 3, 4, 5, 6, 7, 8]) {
     expect(counts.size).toBe(PAIRS[age]);
     expect([...counts.values()].every((n) => n === 2)).toBe(true);
     await answer(page, 'memory');
-    const kept = await page.evaluate(() => Object.keys(localStorage));
-    expect(kept).toEqual(age ? ['ys-profile'] : []);
+    // With a profile, the only new key is the points (one world point for the finished board).
+    const kept = await page.evaluate(() => Object.keys(localStorage).sort());
+    expect(kept).toEqual(age ? ['sprouts:points', 'ys-profile'] : []);
     if (age) expect(JSON.parse((await page.evaluate(() => localStorage.getItem('ys-profile')))!)).toEqual({ age, color: 0, nick: '' });
+    if (age) expect(JSON.parse((await page.evaluate(() => localStorage.getItem('sprouts:points')))!)).toEqual({ maths: 0, english: 0, world: 1 });
   });
 }
 

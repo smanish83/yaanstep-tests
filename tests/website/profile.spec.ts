@@ -104,15 +104,20 @@ for (const age of Object.keys(STAGE).map(Number)) {
   });
 }
 
-test('the avatar shows the points below it, and the count follows the maths points', async ({ page }) => {
+test('the avatar shows the points below it, split by subject, and the count follows the maths points', async ({ page }) => {
   await withProfile(page, { age: 6 }, '/sprouts.html', 30);
   await expect(page.locator('#ys-pts')).toHaveText('30 points');
+  await expect(page.locator('#ys-split')).toHaveText('Maths 30 · English 0');
   const badge = (await page.locator('#ys-badge svg').boundingBox())!;
   const pts = (await page.locator('#ys-pts').boundingBox())!;
+  const split = (await page.locator('#ys-split').boundingBox())!;
   expect(pts.y, 'points sit below the avatar').toBeGreaterThan(badge.y + badge.height - 1);
-  await expect(page.locator('#ys-badge')).toHaveAccessibleName('Profile, age 6. 30 points');
+  expect(split.y, 'the split sits below the total').toBeGreaterThan(pts.y + pts.height - 1);
+  // Points for every game, split by subject (Manish, 22 Nov 2026): a screen reader hears the split in words.
+  await expect(page.locator('#ys-badge')).toHaveAccessibleName('Profile, age 6. 30 points: 30 maths, 0 English, 0 world.');
   await page.evaluate(() => localStorage.setItem('sprouts:demo', JSON.stringify({ points: 1 })));
   await expect(page.locator('#ys-pts')).toHaveText('1 point');
+  await expect(page.locator('#ys-split')).toHaveText('Maths 1 · English 0');
 });
 
 for (const p of LEARNING_PAGES) {
@@ -244,7 +249,7 @@ test.describe('Reset progress lives in the child\'s profile (SCRUM-492)', () => 
     await withProfile(page, { age: 7, nick: 'Sam' }, '/sprouts.html', 40);
     await page.evaluate(() => { localStorage.setItem('sprouts:demo-ch', '["x"]'); localStorage.setItem('demo-garden', '[1]'); localStorage.setItem('set-len', '10'); });
     await page.locator('#ys-badge').click();
-    await expect(page.locator('#ys-ptext')).toHaveText('Progress on this device: 40 points.');
+    await expect(page.locator('#ys-ptext')).toHaveText('Progress on this device: 40 points (40 maths, 0 English, 0 world).');
     await expect(page.locator('#ys-confirm')).toBeHidden();
     await page.locator('#ys-reset').click();
     await expect(page.locator('#ys-confirm')).toBeVisible();
