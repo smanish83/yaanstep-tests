@@ -178,6 +178,36 @@ test('a wrong answer only says "Not yet" and waits: nothing moves on by itself',
   await expect(page.locator('#go')).toBeHidden();
 });
 
+for (const g of GAMES) {
+  test(`${g.title}: after a miss, "Show me how" opens a short moving lesson on a different number (SCRUM-495)`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await open(page);
+    await page.locator(`#play-${g.id}`).click();
+    await expect(page.locator('#howbtn')).toHaveCount(0);
+    const r = await page.evaluate(() => (window as any).YS_TENS.current());
+    if (g.id === 'build') await page.locator('#check').click();
+    else {
+      const wrong = (await page.locator('#choices button').evaluateAll((bs) => bs.map((b) => Number(b.getAttribute('data-v'))))).find((v) => v !== r.ans)!;
+      await page.locator(`#choices button[data-v="${wrong}"]`).click();
+    }
+    await page.locator('#howbtn').click();
+    const lesson = page.locator('#lesson');
+    await expect(lesson.locator('h3')).toBeFocused();
+    await expect(lesson.locator('svg[role=img]')).toHaveAttribute('aria-label', /one at a time/);
+    const said = await page.locator('#lesson-say').innerText();
+    if (g.id === 'compare') expect(said, 'the lesson must not use these numbers').not.toMatch(new RegExp(`\\b(${r.a}|${r.b})\\b`));
+    else expect(said, 'the lesson must not give this answer away').not.toContain(`That makes ${r.ans}.`);
+    const hidden = await lesson.locator('svg .mv-in').evaluateAll((es) => es.filter((e) => getComputedStyle(e).opacity !== '1').length);
+    expect(hidden).toBe(0);
+    expect(await axeViolations(page, '#game')).toEqual([]);
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+    if (g.id === 'build') {
+      await page.locator('#add-ten').click();
+      await expect(lesson, 'building does not close the lesson').toBeVisible();
+    }
+  });
+}
+
 test('every button is at least 48 by 48 px', async ({ page }) => {
   await open(page);
   const check = async () => {
