@@ -18,7 +18,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Pick the website branch
@@ -38,7 +38,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Run the suite (next profile)
-        run: npx playwright test
+        run: npx playwright test --workers=4
         env:
           CI: '1'
           SITE_DIR: site
