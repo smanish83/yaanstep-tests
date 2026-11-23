@@ -9,23 +9,22 @@ import { knownBug } from '../support/known-bugs';
 test.beforeEach(() => { knownBug(); });
 
 const KEY = 'ys-profile';
-const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Brain games', 'Weather and temperature', 'Money and coins', 'Clocks and time'];
-/** The games each age should see on the Learning page, written out from the age tags on the cards. */
-const FITS: Record<number, string[]> = {
-  3: ['Maths', 'Reading', 'Story time', 'Story library', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Brain games', 'Weather and temperature'],
-  4: ['Maths', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Brain games', 'Weather and temperature'],
-  5: GAMES.filter((g) => g !== 'Tens and ones' && g !== 'Fractions'),
-  6: GAMES.filter((g) => g !== 'Fractions' && g !== 'Shapes, colors, numbers and animals'),
-  7: ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Learn about the world', 'Brain games', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
-  8: ['Maths', 'Bar models', 'Tens and ones', 'Fractions', 'Story library', 'Learn about the world', 'Brain games', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
-  9: ['Maths', 'Bar models', 'Fractions', 'Story library', 'Money and coins', 'Clocks and time'],
-  12: ['Maths', 'Bar models', 'Story library'],
-};
+// The cards on the Yaanstep Sprouts page and the ages each fits (data-ages), in page order (23 Nov 2026).
+const CARDS: [string, number, number][] = [
+  ['Maths', 3, 12], ['Quick maths games', 6, 12], ['Bar models', 5, 12], ['Number bonds', 5, 7], ['Tens and ones', 6, 8],
+  ['Fractions', 7, 9], ['Money and coins', 5, 9], ['Clocks and time', 5, 9], ['Reading', 3, 7], ['Story library', 3, 12],
+  ['Sounds and beats', 4, 6], ['Parts of a sentence', 5, 7], ['Rhymes and letter teams', 3, 7], ['Phonogram games', 5, 7],
+  ['Shapes, colors, numbers and animals', 3, 5], ['Same and different', 3, 5], ['Brain games', 3, 8], ['Learn about the world', 3, 8],
+  ['Weather and temperature', 3, 8], ['Slow things to watch', 3, 12], ['Calm corner', 3, 12],
+];
+const GAMES = CARDS.map((c) => c[0]);
+/** The games each age should see on the Yaanstep Sprouts page. */
+const FITS: Record<number, string[]> = Object.fromEntries([3, 4, 5, 6, 7, 8, 9, 12].map((age) => [age, CARDS.filter((c) => age >= c[1] && age <= c[2]).map((c) => c[0])]));
 const STAGE: Record<number, string> = {
   3: 'seed', 4: 'seed', 5: 'sprout', 6: 'sprout', 7: 'small plant', 8: 'small plant',
   9: 'plant with a bud', 10: 'plant with a bud', 11: 'plant in flower', 12: 'plant in flower',
 };
-const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'calm', 'brain'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'calm', 'brain', 'watch'];
 
 const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
@@ -88,11 +87,13 @@ for (const age of Object.keys(FITS).map(Number)) {
   });
 }
 
-test('the lesson cards follow the age too: Same and different for ages 3 to 4, the maths games from 6', async ({ page }) => {
+test('the two games on the page itself follow the age too: Same and different for ages 3 to 5, quick maths from 6', async ({ page }) => {
   await withProfile(page, { age: 3 });
-  expect(await page.locator('#learn .lesson-cards > li[data-ages]').evaluateAll((ls) => ls.map((l) => (l as HTMLElement).hidden))).toEqual([false, true]);
+  await expect(page.locator('#start-sorting')).toBeVisible();
+  await expect(page.locator('#start-maths-auto')).toBeHidden();
   await withProfile(page, { age: 9 });
-  expect(await page.locator('#learn .lesson-cards > li[data-ages]').evaluateAll((ls) => ls.map((l) => (l as HTMLElement).hidden))).toEqual([true, false]);
+  await expect(page.locator('#start-sorting')).toBeHidden();
+  await expect(page.locator('#start-maths-auto')).toBeVisible();
 });
 
 for (const age of Object.keys(STAGE).map(Number)) {
