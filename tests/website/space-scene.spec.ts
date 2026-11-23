@@ -59,7 +59,7 @@ test('the space topic opens one picture of the Sun and the planets: accessible, 
   const errors = watchErrors(page);
   const reqs = watchRequests(page);
   await openScene(page);
-  const svg = page.locator('#sky svg');
+  const svg = page.locator('#sky > svg');
   await expect(svg).toHaveAttribute('role', 'img');
   expect(await svg.getAttribute('aria-label')).toMatch(/Mercury, Venus, Earth.*Mars, Jupiter, Saturn, Uranus and Neptune/);
   await expect(page.locator('#scene-note')).toContainText('sizes are about right');
@@ -152,7 +152,7 @@ test('at 320px the page does not scroll sideways; the picture scrolls in its own
 
 test('the drawn sizes match the real sizes, and the objects are in order from the Sun', async ({ page }) => {
   await openScene(page);
-  const drawn = await page.locator('#sky svg').evaluate((svg, ids) => Object.fromEntries((ids as string[]).map((id) => {
+  const drawn = await page.locator('#sky > svg').evaluate((svg, ids) => Object.fromEntries((ids as string[]).map((id) => {
     const c = svg.querySelector(`[data-obj="${id}"] .body`)!;
     return [id, { r: Number(c.getAttribute('r')), cx: Number(c.getAttribute('cx')) }];
   })), [...ORDER]) as Record<string, { r: number; cx: number }>;

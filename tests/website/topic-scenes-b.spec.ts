@@ -102,7 +102,7 @@ for (const t of TOPICS) {
       const errors = watchErrors(page);
       const reqs = watchRequests(page);
       await openScene(page, t);
-      const svg = page.locator('#sky svg');
+      const svg = page.locator('#sky > svg');
       await expect(svg).toHaveAttribute('role', 'img');
       const label = ((await svg.getAttribute('aria-label')) ?? '').toLowerCase();
       for (const [, name] of t.parts) expect(label, name).toContain(name.toLowerCase());
@@ -216,7 +216,7 @@ for (const t of TOPICS) {
         }
       }
       // In the pack: every part is inside the picture, and the middle of its drawing is inside its own part.
-      const problems = await page.locator('#sky svg').evaluate((svg, tid) => {
+      const problems = await page.locator('#sky > svg').evaluate((svg, tid) => {
         const sc = (window as any).YS_TOPIC_PAGE.topics[tid].scene, [, , W, H] = sc.vb.split(/\s+/).map(Number), out: string[] = [];
         const bad = /<(script|style|text|image|foreignObject|a)\b|href=|\son\w+=|url\(/i;
         if (bad.test(sc.back)) out.push('back: not plain drawing');

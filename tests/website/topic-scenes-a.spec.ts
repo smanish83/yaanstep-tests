@@ -120,7 +120,7 @@ for (const c of CASES) {
       await expect(page.locator('#scene-title')).toHaveText(sc.title);
       await expect(page.locator('#scene-panel')).toHaveAttribute('aria-live', 'polite');
       expect((await said(page)).at(-1)).toBe(`${sc.title}. ${sc.prompt}`);
-      const svg = page.locator('#sky svg');
+      const svg = page.locator('#sky > svg');
       await expect(svg).toHaveAttribute('role', 'img');
       expect(await svg.getAttribute('aria-label')).toMatch(c.label);
       // Every part is a real button whose accessible name is its visible name, in the expected order.
@@ -135,7 +135,7 @@ for (const c of CASES) {
       // Nothing moves in the picture, so there is nothing to turn off for reduced motion or the calm setting.
       expect(await page.locator('#scene-view').evaluate((e) => e.getAnimations({ subtree: true }).length)).toBe(0);
       // The drawings are plain shapes: no text, scripts, links or pictures from elsewhere.
-      expect(await page.locator('#sky svg').evaluate((s) => s.querySelectorAll('text, script, image, foreignObject, a, [href], use').length)).toBe(0);
+      expect(await page.locator('#sky > svg').evaluate((s) => s.querySelectorAll('text, script, image, foreignObject, a, [href], use').length)).toBe(0);
       expect(reqs.external('http://127.0.0.1:4173')).toEqual([]);
       expect(reqs.sending()).toEqual([]);
       const stored = await storedData(page, context);
@@ -227,7 +227,7 @@ for (const c of CASES) {
         expect(overlaps(boxes[i], boxes[j]), `${boxes[i].id} and ${boxes[j].id} on the page`).toBe(false);
       }
       // Each part's own drawing reaches into its tap area (the picture is drawn 1:1, so drawing units are pixels).
-      const drawn = await page.locator('#sky svg').evaluate((svg) => Array.from(svg.querySelectorAll('g[data-obj]')).map((g) => {
+      const drawn = await page.locator('#sky > svg').evaluate((svg) => Array.from(svg.querySelectorAll('g[data-obj]')).map((g) => {
         const b = (g as SVGGraphicsElement).getBBox(); return { id: g.getAttribute('data-obj')!, x: b.x, y: b.y, width: b.width, height: b.height };
       }));
       expect(drawn.map((d) => d.id)).toEqual(sc.objects.map((o) => o.id));
