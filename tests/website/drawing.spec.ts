@@ -176,6 +176,7 @@ test('step by step: 30+ drawings from easy to harder; one line at a time, read a
   // draw along
   await page.locator('#guide').click();
   await expect(page.locator('#ghost')).toBeVisible();
+  await page.locator('#canvas').scrollIntoViewIfNeeded();
   const box = (await page.locator('#canvas').boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3);
   await page.mouse.down();
