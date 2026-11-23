@@ -59,6 +59,7 @@ test.describe('Fewer choices', () => {
     { file: 'money', games: ['count', 'change'] },
     { file: 'clocks', games: ['read', 'howlong'] },
     { file: 'weather', games: ['find', 'dress', 'read', 'compare'] },
+    { file: 'parts', games: ['pizza', 'of', 'dec', 'pct', 'match', 'life'] },
   ];
   for (const p of SHELL) {
     test(`${p.file}: two answer tiles, exactly one of them right, in every round of every choice game`, async ({ page }) => {
@@ -385,7 +386,7 @@ test.describe('Banned words (ACCESS rules): none on the changed pages', () => {
   const BANNED = [/therap/i, /treatment/i, /diagnos/i, /special needs/i, /\bproven\b/i, /clinical/i, /suitable for/i, /fully accessible/i,
     /dyslexi/i, /autis/i, /\bADHD\b/, /\bADD\b/, /down syndrome/i, /hearing loss/i, /low vision/i, /\bblind/i, /\bdeaf/i, /dyspraxi/i,
     /dyscalculi/i, /cerebral palsy/i, /epilep/i, /asperger/i, /\bSEND?\b/, /disorder/i, /impair/i, /\bcures?\b/i];
-  for (const path of ['/accessibility.html', '/sprouts.html', '/calm.html', '/watch.html', '/compare.html', '/opposites.html', '/find-difference.html']) {
+  for (const path of ['/accessibility.html', '/sprouts.html', '/calm.html', '/watch.html', '/compare.html', '/opposites.html', '/find-difference.html', '/parts.html']) {
     test(`${path}`, async ({ page }) => {
       await page.goto(path);
       const text = [await page.locator('main').innerText(), await page.title(), (await page.locator('meta[name="description"]').getAttribute('content')) ?? ''].join(' ');
