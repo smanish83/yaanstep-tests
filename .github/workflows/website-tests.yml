@@ -11,6 +11,9 @@ on:
       website_ref:
         description: Website branch or commit to test
         default: main
+      only:
+        description: Run only test files whose name contains this text (empty = all)
+        default: ''
 
 permissions:
   contents: read
@@ -38,7 +41,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Run the suite
-        run: npx playwright test --workers=4
+        run: npx playwright test --workers=4 ${{ inputs.only }}
         env:
           CI: '1'
           SITE_DIR: site
