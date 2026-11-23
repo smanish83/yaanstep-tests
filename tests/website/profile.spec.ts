@@ -16,7 +16,7 @@ const CARDS: [string, number, number][] = [
   ['Fractions', 7, 9], ['Money and coins', 5, 9], ['Clocks and time', 5, 9], ['Big and small', 3, 8],
   // English learning games
   ['Reading', 3, 7], ['Story library', 3, 12], ['Word of the day', 3, 12], ['Grammar', 4, 12], ['Sounds and beats', 4, 6], ['Parts of a sentence', 5, 7], ['Rhymes and letter teams', 3, 7],
-  ['Phonogram games', 5, 7], ['Opposites', 3, 8],
+  ['Phonogram games', 5, 7], ['Opposites', 3, 12],
   // Brain games and puzzles
   ['Brain games', 3, 8], ['Find the difference', 3, 8], ['Same and different', 3, 5], ['Shapes, colors, numbers and animals', 3, 5],
   // World around us

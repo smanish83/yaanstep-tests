@@ -17,9 +17,10 @@ const VOICE = `window.__said=[];
   SS.speak=(u)=>{ window.__said.push(u.text); };`;
 
 type PageId = 'compare' | 'opposites';
-const PAGES: Record<PageId, { title: string; h1: string; parts: number; area: 'maths' | 'english'; games: Record<string, string> }> = {
-  compare: { title: 'Big and small | Yaanstep', h1: 'Big and small', parts: 5, area: 'maths', games: { size: 'Big or small?', real: 'Which is smaller?', count: 'More or fewer?', number: 'Bigger number' } },
-  opposites: { title: 'Opposites | Yaanstep', h1: 'Opposites', parts: 5, area: 'english', games: { find: 'Find the opposite', pairs: 'Opposites or not?' } },
+// "more": games on the page that this file does not play round by round (Opposites' word games are checked in opposites-words.spec.ts).
+const PAGES: Record<PageId, { title: string; h1: string; parts: number; area: 'maths' | 'english'; ages: RegExp; games: Record<string, string>; more: Record<string, string> }> = {
+  compare: { title: 'Big and small | Yaanstep', h1: 'Big and small', parts: 5, area: 'maths', ages: /ages 3 to 8/i, games: { size: 'Big or small?', real: 'Which is smaller?', count: 'More or fewer?', number: 'Bigger number' }, more: {} },
+  opposites: { title: 'Opposites | Yaanstep', h1: 'Opposites', parts: 5, area: 'english', ages: /ages 3 to 12/i, games: { find: 'Find the opposite', pairs: 'Opposites or not?' }, more: { words: 'Word opposites', prefix: 'Make the opposite' } },
 };
 const PAGE_IDS = Object.keys(PAGES) as PageId[];
 /** Words the pages must never use (wording rules for Yaanstep Sprouts, and the site-wide list). */
@@ -47,7 +48,13 @@ const REAL_CM: Record<string, number> = { ant: 0.5, bee: 1.5, egg: 6, apple: 8, 
   dog: 60, chair: 90, bathtub: 160, cow: 220, bed: 200, car: 400, elephant: 600, house: 1000, bus: 1100 };
 /** Opposites by the word shown. "short" has two: tall and long. */
 const OPP_PAIRS = [['big', 'small'], ['hot', 'cold'], ['full', 'empty'], ['tall', 'short'], ['fast', 'slow'], ['happy', 'sad'], ['up', 'down'], ['open', 'closed'], ['wet', 'dry'],
-  ['day', 'night'], ['long', 'short'], ['heavy', 'light'], ['loud', 'quiet'], ['in', 'out'], ['old', 'new'], ['clean', 'dirty'], ['on', 'off']];
+  ['day', 'night'], ['long', 'short'], ['heavy', 'light'], ['loud', 'quiet'], ['in', 'out'], ['old', 'new'], ['clean', 'dirty'], ['on', 'off'],
+  // 23 Nov 2026: 14 more picture pairs.
+  ['awake', 'asleep'], ['thick', 'thin'], ['over', 'under'], ['sweet', 'sour'], ['straight', 'curved'], ['high', 'low'], ['hard', 'soft'],
+  ['top', 'bottom'], ['many', 'few'], ['same', 'different'], ['left', 'right'], ['stop', 'go'], ['narrow', 'wide'], ['float', 'sink']];
+/** Picture words that mean nearly the same: one must never be a wrong choice when the other is the answer. */
+const NEAR: string[][] = [['up', 'high', 'over', 'top', 'float'], ['down', 'low', 'under', 'bottom', 'sink'], ['quiet', 'soft'], ['loud', 'hard'],
+  ['small', 'thin', 'narrow'], ['big', 'thick', 'wide'], ['tall', 'high'], ['short', 'low'], ['fast', 'go'], ['slow', 'stop'], ['few', 'empty'], ['many', 'full']];
 const OPP: Record<string, string[]> = {};
 for (const [a, b] of OPP_PAIRS) { (OPP[a] ??= []).push(b); (OPP[b] ??= []).push(a); }
 /** Words with no opposite: what a thing is made of, and names of things. */
@@ -114,6 +121,10 @@ function oppositeProblems(game: string, q: any, labels: Record<string, string>, 
     if (said.includes(word)) out.push(`find ${word}: the word itself is a choice`);
     if (q.kind === 'none' && !choices.includes('none')) out.push(`find ${word}: no "No opposite!" tile`);
     if (pics && choices.filter((id) => id !== 'none').length !== pics) out.push(`find ${word}: ${choices.filter((id) => id !== 'none').length} pictures, want ${pics}`);
+    if (q.kind === 'pair') {
+      const ans = labels[q.ans];
+      for (const w of said) if (w !== ans && NEAR.some((g) => g.includes(w) && (g.includes(ans) || g.includes(word)))) out.push(`find ${word}: ${w} means nearly the same as ${ans} or ${word}`);
+    }
   }
   if (game === 'pairs') {
     const yes = (OPP[q.la] ?? []).includes(q.lb);
@@ -138,7 +149,7 @@ async function missOnce(page: Page, prefer?: string) {
 }
 
 for (const id of PAGE_IDS) {
-  const P = PAGES[id], GAMES = Object.keys(P.games);
+  const P = PAGES[id], GAMES = Object.keys(P.games), ALL = [...GAMES, ...Object.keys(P.more)];
 
   test(`${P.h1}: loads with no errors, nothing from other sites, nothing stored, passes the accessibility scan, fits 320 px`, async ({ page, context }) => {
     const errors = watchErrors(page);
@@ -146,10 +157,10 @@ for (const id of PAGE_IDS) {
     await open(page, id);
     await expect(page.locator('h1')).toHaveText(P.h1);
     await expect(page).toHaveTitle(P.title);
-    await expect(page.locator('#menu .step')).toHaveCount(GAMES.length + 1);
-    for (const g of GAMES) await expect(page.locator(`#play-${g}`)).toContainText(P.games[g]);
+    await expect(page.locator('#menu .step')).toHaveCount(ALL.length + 1);
+    for (const g of ALL) await expect(page.locator(`#play-${g}`)).toContainText({ ...P.games, ...P.more }[g]);
     const note = await page.locator('.note').first().innerText();
-    expect(note).toMatch(/ages 3 to 8/i);
+    expect(note).toMatch(P.ages);
     expect(note).toMatch(/free/i);
     expect(note).toMatch(/Not a replacement for school/);
     expect(note).toMatch(/only points are kept on this device/i);
@@ -215,7 +226,7 @@ for (const id of PAGE_IDS) {
       expect(hidden, 'reduced motion shows the finished picture').toBe(0);
       if (i < P.parts) await page.locator('#nextpart').click();
     }
-    await expect(page.locator('[data-go]')).toHaveCount(GAMES.length);
+    await expect(page.locator('[data-go]')).toHaveCount(ALL.length);
     expect(await axeViolations(page, '#game')).toEqual([]);
     const lesson = said.join('\n');
     if (id === 'compare') {
@@ -317,7 +328,7 @@ for (const id of PAGE_IDS) {
   test(`${P.h1}: every button is at least 48 by 48 px and nothing scrolls sideways at 320 px`, async ({ page }) => {
     await open(page, id, 8);
     await page.setViewportSize({ width: 320, height: 700 });
-    for (const g of ['learn', ...GAMES]) {
+    for (const g of ['learn', ...ALL]) {
       await page.locator(`#play-${g}`).click();
       for (const b of await page.locator('button:visible').all()) {
         const box = (await b.boundingBox())!;
