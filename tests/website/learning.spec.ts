@@ -23,13 +23,13 @@ test.describe('what the page tells a parent', () => {
   test('one short note at the top says the games are samples made by AI, not tested with children, and nothing is recorded or sent (Manish, 23 Nov 2026)', async ({ page }) => {
     const notice = page.locator('main .notice[role=note]');
     await expect(notice).toHaveCount(1);
-    await expect(notice).toContainText("free samples made by Yaanstep's AI team, not yet tested with children");
+    await expect(notice).toContainText("made by Yaanstep's AI team and not yet tested with children. Not a replacement for school.");
     await expect(notice).toContainText('No sign-in and no ads; nothing is recorded or sent, and only points are kept on this device, with a child profile.');
     await expect(page.locator('main .lead')).toContainText('Short lessons and games to try with your child.');
   });
 
   test('the cards no longer repeat the age or the voice and privacy lines (Manish, 23 Nov 2026)', async ({ page }) => {
-    const cards = page.locator('.games-cards > li');
+    const cards = page.locator('.games-cards li');
     expect(await cards.count()).toBeGreaterThan(15);
     await expect(page.locator('.games-cards .tag')).toHaveCount(0);
     const text = await page.locator('.games-cards').innerText();

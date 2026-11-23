@@ -144,7 +144,7 @@ test('How it works: example steps are approved steps', async ({ page }) => {
 
 // SCRUM-410 rule: no puzzle count (or "endless", "unlimited", "thousands of" puzzles) is stated in public
 // unless an automated test proves that many distinct puzzles exist. No count is proven yet, so none may appear.
-const LEARNING_PAGES = ['sprouts', 'maths', 'reading', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'brain', 'calm', 'watch'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'reading', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'brain', 'calm', 'watch', 'compare', 'opposites', 'find-difference'];
 const COUNT_CLAIMS = [
   /\b\d{2,}[\d,]*\+?\s+(different |distinct |unique |new )?(puzzles|questions|problems|games|exercises)\b/i,
   /\b(endless|unlimited|infinite|countless|thousands of|hundreds of|millions of)\s+(puzzles|questions|problems|games|exercises)\b/i,
@@ -159,3 +159,13 @@ for (const p of LEARNING_PAGES) {
     for (const claim of COUNT_CLAIMS) expect.soft(text, `count claim: ${claim}`).not.toMatch(claim);
   });
 }
+
+test('no "Join the testers" button and no "Samples only." anywhere (Manish, 23 Nov 2026)', async ({ page }) => {
+  // The testers page itself stays for old links, but nothing links to it any more.
+  for (const p of [...site.pages, ...LEARNING_PAGES].filter((x) => x !== 'testers')) {
+    await page.goto(url(p));
+    await expect.soft(page.locator('a[href="testers.html"]'), p).toHaveCount(0);
+    await expect.soft(page.locator('body'), p).not.toContainText('Join the testers');
+    await expect.soft(page.locator('body'), p).not.toContainText(/samples only/i);
+  }
+});

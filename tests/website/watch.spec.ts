@@ -14,7 +14,7 @@ test('linked from Yaanstep Sprouts next to the calm corner; loads nothing from o
   const errors = watchErrors(page);
   const reqs = watchRequests(page);
   await page.goto('/sprouts.html');
-  const cards = await page.locator('.games-cards > li h3').allTextContents();
+  const cards = await page.locator('.games-cards li h4').allTextContents();
   const weather = cards.indexOf('Weather and temperature');
   expect(cards.slice(weather, weather + 3), 'calm cards sit next to weather').toEqual(['Weather and temperature', 'Slow things to watch', 'Calm corner']);
   await page.locator('.games-cards a[href="watch.html"]').click();

@@ -11,11 +11,16 @@ test.beforeEach(() => { knownBug(); });
 const KEY = 'ys-profile';
 // The cards on the Yaanstep Sprouts page and the ages each fits (data-ages), in page order (23 Nov 2026).
 const CARDS: [string, number, number][] = [
+  // Maths games
   ['Maths', 3, 12], ['Quick maths games', 6, 12], ['Bar models', 5, 12], ['Number bonds', 5, 7], ['Tens and ones', 6, 8],
-  ['Fractions', 7, 9], ['Money and coins', 5, 9], ['Clocks and time', 5, 9], ['Reading', 3, 7], ['Story library', 3, 12],
-  ['Sounds and beats', 4, 6], ['Parts of a sentence', 5, 7], ['Rhymes and letter teams', 3, 7], ['Phonogram games', 5, 7],
-  ['Shapes, colors, numbers and animals', 3, 5], ['Same and different', 3, 5], ['Brain games', 3, 8], ['Learn about the world', 3, 8],
-  ['Weather and temperature', 3, 8], ['Slow things to watch', 3, 12], ['Calm corner', 3, 12],
+  ['Fractions', 7, 9], ['Money and coins', 5, 9], ['Clocks and time', 5, 9], ['Big and small', 3, 8],
+  // English learning games
+  ['Reading', 3, 7], ['Story library', 3, 12], ['Sounds and beats', 4, 6], ['Parts of a sentence', 5, 7], ['Rhymes and letter teams', 3, 7],
+  ['Phonogram games', 5, 7], ['Opposites', 3, 8],
+  // Brain games and puzzles
+  ['Brain games', 3, 8], ['Find the difference', 3, 8], ['Same and different', 3, 5], ['Shapes, colors, numbers and animals', 3, 5],
+  // World around us
+  ['Learn about the world', 3, 8], ['The Sun and the planets', 3, 8], ['Weather and temperature', 3, 8], ['Slow things to watch', 3, 12], ['Calm corner', 3, 12],
 ];
 const GAMES = CARDS.map((c) => c[0]);
 /** The games each age should see on the Yaanstep Sprouts page. */
@@ -24,9 +29,9 @@ const STAGE: Record<number, string> = {
   3: 'seed', 4: 'seed', 5: 'sprout', 6: 'sprout', 7: 'small plant', 8: 'small plant',
   9: 'plant with a bud', 10: 'plant with a bud', 11: 'plant in flower', 12: 'plant in flower',
 };
-const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'calm', 'brain', 'watch'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'calm', 'brain', 'watch', 'compare', 'opposites', 'find-difference'];
 
-const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
+const visibleGames = (page: Page) => page.locator('.games-cards li:visible h4').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
 async function withProfile(page: Page, p: { age: number; color?: number; nick?: string; comfort?: string[] }, path = '/sprouts.html', points?: number) {
   await page.goto(path);
@@ -388,4 +393,16 @@ test.describe('Comfort settings for children who learn in different ways (SCRUM-
     await page.goto('/sprouts.html');
     await expect(page.locator('main .notice a[href="accessibility.html#sprouts"]')).toBeVisible();
   });
+});
+
+test('the games sit in four frames, and a frame with nothing for the child\'s age is hidden (Manish, 23 Nov 2026)', async ({ page }) => {
+  await page.goto('/sprouts.html');
+  await expect(page.locator('.games-cards .frame-h')).toHaveText(['Maths games', 'English learning games', 'Brain games and puzzles', 'World around us']);
+  await expect(page.locator('.games-cards .frame-h svg.frame-icon[aria-hidden=true]')).toHaveCount(4);
+  expect(await axeViolations(page)).toEqual([]);
+  await withProfile(page, { age: 12 });
+  await expect(page.locator('.frame-puzzles')).toBeHidden();
+  await expect(page.locator('.frame-maths')).toBeVisible();
+  await page.locator('#ys-showall').click();
+  await expect(page.locator('.frame-puzzles')).toBeVisible();
 });
