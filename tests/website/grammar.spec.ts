@@ -4,6 +4,8 @@ import { axeViolations, horizontalOverflow, storedData, watchErrors, watchReques
 // Grammar: how sentences work (grammar.html; Manish, 23 Nov 2026; SCRUM-516). 14 topics, each with a short lesson
 // (words colored by the job they do, with more examples) and practice that starts at the child's age and adapts.
 // Fragments: "Whole sentence or a piece?", then fix the piece.
+// Games (Manish, 23 Nov 2026): Mixed-up words (then or than?), Fill in the blanks for every topic, and Punctuation
+// detective (tap the gap where a mark goes; see and hear how a mark changes the meaning).
 
 const VOICE = `window.__said=[];
   window.SpeechSynthesisUtterance=class{constructor(t){this.text=t;this.rate=1;this.voice=null;this.lang='';}};
@@ -12,7 +14,7 @@ const VOICE = `window.__said=[];
   SS.cancel=()=>{};
   SS.speak=(u)=>{ window.__said.push(u.text); };`;
 
-const TOPICS = ['nouns', 'verbs', 'adjectives', 'plurals', 'pronouns', 'tenses', 'adverbs', 'capitals', 'endmarks', 'building', 'fragments', 'joining', 'commas', 'subject'];
+const TOPICS = ['nouns', 'verbs', 'adjectives', 'plurals', 'pronouns', 'tenses', 'adverbs', 'capitals', 'endmarks', 'building', 'fragments', 'joining', 'commas', 'subject', 'mixups', 'punctuation', 'blanks'];
 
 async function open(page: Page, opts: { age?: number; hash?: string } = {}) {
   await page.addInitScript(VOICE);
@@ -57,7 +59,7 @@ test('the page lists every topic, passes the accessibility scan, fits a small ph
   expect(errors).toEqual([]);
 });
 
-for (const id of ['nouns', 'plurals', 'fragments', 'subject']) {
+for (const id of ['nouns', 'plurals', 'fragments', 'subject', 'mixups', 'punctuation', 'blanks']) {
   test(`${id}: the lesson shows colored word blocks on every part, with more examples, and ends with a way into practice`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await open(page, { hash: `#${id}` });
@@ -126,7 +128,7 @@ test('practice starts at the child\'s age: a 4 year old gets easy noun questions
 });
 
 test('every topic can be practised for a full game without a dead end', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   await open(page, { age: 9 });
   for (const id of TOPICS) {
     await page.locator(`#topic-${id}`).click();
@@ -141,4 +143,90 @@ test('every topic can be practised for a full game without a dead end', async ({
     await page.locator('#stop').click();
     await page.locator('#other-topic').click();
   }
+});
+
+/** Opens a topic's practice with a fixed first question, so a test can play one kind of round. */
+async function practiseWith(page: Page, id: string, pick: string, age = 8) {
+  await open(page, { age, hash: `#${id}` });
+  await page.evaluate(([id, pick]) => {
+    const t = (window as any).YS_GRAMMAR.find((x: any) => x.id === id);
+    const want = new Function('q', `return ${pick};`) as (q: any) => boolean;
+    t.q.sort((a: any, b: any) => Number(want(b)) - Number(want(a)));
+    const keep = t.q.filter(want);
+    t.q.splice(0, t.q.length, ...keep);
+  }, [id, pick] as const);
+  await page.locator('#play-play').click();
+}
+
+test('mixed-up words: a sentence with a gap and the confusable words; the right word fills the gap and the reason is given', async ({ page }) => {
+  const errors = watchErrors(page);
+  await practiseWith(page, 'mixups', "q.opts.includes('than') && q.opts.includes('then')");
+  const r = await current(page);
+  expect(['then', 'than', 'Then', 'Than']).toContain(r.ans);
+  await expect(page.locator('#gap')).toContainText('___');
+  const wrong = r.ans.toLowerCase() === 'than' ? r.ans.replace(/an$/, 'en') : r.ans.replace(/en$/, 'an');
+  await page.locator(`#choices button[data-v="${wrong}"]`).click();
+  await expect(page.locator('#sub')).toHaveClass(/try/);
+  await page.locator(`#choices button[data-v="${r.ans}"]`).click();
+  await expect(page.locator('#sub')).toHaveClass(/yes/);
+  await expect(page.locator('#gap mark.filled')).toHaveText(r.ans);
+  await expect(page.locator('#gap')).not.toContainText('___');
+  expect(await axeViolations(page, '#game')).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('mixed-up words cover the sets Manish named, and every set has its rule explained', async ({ page }) => {
+  await open(page);
+  const sets = await page.evaluate(() => (window as any).YS_GRAMMAR.find((t: any) => t.id === 'mixups').q.map((q: any) => q.opts.map((o: string) => o.toLowerCase()).sort().join('/')));
+  for (const need of ['than/then', 'their/there/they\'re', 'you\'re/your', 'it\'s/its']) expect(sets, need).toContain(need);
+  expect(sets.length).toBeGreaterThanOrEqual(200);
+});
+
+test('punctuation detective: tap the gap where the mark goes; a wrong gap explains, the right gap shows the mark', async ({ page }) => {
+  const errors = watchErrors(page);
+  await practiseWith(page, 'punctuation', "q.k === 'place' && q.mark === ','");
+  const r = await current(page);
+  expect(r.k).toBe('place');
+  const gaps = await page.locator('#choices .gapbtn').count();
+  expect(gaps).toBeGreaterThan(2);
+  const wrong = r.ans === '0' ? '1' : '0';
+  await page.locator(`#choices button[data-v="${wrong}"]`).click();
+  await expect(page.locator('#sub')).toHaveClass(/try/);
+  await page.locator(`#choices button[data-v="${r.ans}"]`).click();
+  await expect(page.locator('#sub')).toHaveClass(/yes/);
+  await expect(page.locator(`#choices button[data-v="${r.ans}"] .mk`)).toHaveText(',');
+  expect(await axeViolations(page, '#game')).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+  expect(errors).toEqual([]);
+});
+
+test('punctuation detective: two sentences with the same words, a picture of the meaning, and both read aloud', async ({ page }) => {
+  await practiseWith(page, 'punctuation', "q.k === 'meaning'");
+  const r = await current(page);
+  expect(r.k).toBe('meaning');
+  await expect(page.locator('#area .mpic svg')).toBeVisible();
+  const opts = await page.locator('#choices button').evaluateAll((bs) => bs.map((b) => b.getAttribute('data-v')!));
+  expect(opts.length).toBeGreaterThanOrEqual(2);
+  await page.locator('#hear-each').click();
+  const said = (await page.evaluate(() => (window as any).__said as string[])).pop()!;
+  for (const o of opts) expect(said).toContain(o);
+  await page.locator(`#choices button[data-v="${r.ans.replace(/"/g, '\\"')}"]`).click();
+  await expect(page.locator('#sub')).toHaveClass(/yes/);
+  expect(await axeViolations(page, '#game')).toEqual([]);
+});
+
+test('fill in the blanks: every older topic has its own gap sentences, and they join that topic\'s practice', async ({ page }) => {
+  await open(page);
+  const r = await page.evaluate(() => {
+    const G = (window as any).YS_GRAMMAR, blanks = G.find((t: any) => t.id === 'blanks');
+    const by: Record<string, number> = {}, joined: Record<string, boolean> = {};
+    for (const q of blanks.q) { by[q.t] = (by[q.t] || 0) + 1; joined[q.t] = joined[q.t] !== false && G.find((t: any) => t.id === q.t).q.includes(q); }
+    return { by, joined, total: blanks.q.length };
+  });
+  for (const id of TOPICS.filter((t) => !['mixups', 'punctuation', 'blanks'].includes(t))) {
+    expect(r.by[id] ?? 0, id).toBeGreaterThanOrEqual(12);
+    expect(r.joined[id], id).toBe(true);
+  }
+  expect(r.total).toBeGreaterThanOrEqual(200);
 });
