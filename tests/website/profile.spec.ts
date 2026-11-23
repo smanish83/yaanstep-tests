@@ -21,6 +21,8 @@ const CARDS: [string, number, number][] = [
   ['Brain games', 3, 8], ['Find the difference', 3, 8], ['Same and different', 3, 5], ['Shapes, colors, numbers and animals', 3, 5],
   // World around us
   ['Learn about the world', 3, 8], ['The Sun and the planets', 3, 8], ['Weather and temperature', 3, 8], ['Slow things to watch', 3, 12], ['Calm corner', 3, 12],
+  // Drawing and coloring
+  ['Drawing and coloring', 3, 12],
 ];
 const GAMES = CARDS.map((c) => c[0]);
 /** The games each age should see on the Yaanstep Sprouts page. */
@@ -395,10 +397,10 @@ test.describe('Comfort settings for children who learn in different ways (SCRUM-
   });
 });
 
-test('the games sit in four frames, and a frame with nothing for the child\'s age is hidden (Manish, 23 Nov 2026)', async ({ page }) => {
+test('the games sit in frames, and a frame with nothing for the child\'s age is hidden (Manish, 23 Nov 2026)', async ({ page }) => {
   await page.goto('/sprouts.html');
-  await expect(page.locator('.games-cards .frame-h > span')).toHaveText(['Maths games', 'English learning games', 'Brain games and puzzles', 'World around us']);
-  await expect(page.locator('.games-cards .frame-h svg.frame-icon[aria-hidden=true]')).toHaveCount(4);
+  await expect(page.locator('.games-cards .frame-h > span')).toHaveText(['Maths games', 'English learning games', 'Brain games and puzzles', 'World around us', 'Drawing and coloring']);
+  await expect(page.locator('.games-cards .frame-h svg.frame-icon[aria-hidden=true]')).toHaveCount(5);
   expect(await axeViolations(page)).toEqual([]);
   await withProfile(page, { age: 12 });
   await expect(page.locator('.frame-puzzles')).toBeHidden();

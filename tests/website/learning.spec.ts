@@ -127,7 +127,7 @@ test.describe('Same and different (ages 3 to 5, with a grown-up)', () => {
     await playSortingPerfectly(page);
     await expect(title(page)).toHaveText('Now do it for real');
     await expect(progress(page)).toHaveText('Step 5 of 5');
-    await expect(page.locator('#player-say p:not(.who)').first()).toHaveText(/^(Pair up|Find|Line up|Fold|Sort|Look)\b.+\.$/);
+    await expect(page.locator('#player-say p:not(.who)').first()).toHaveText(/^(Pair up|Find|Line up|Fold|Sort|Look)\b.+[.?]$/);
     await expect(next(page)).toBeHidden();
     await expect(stage(page).getByRole('button', { name: 'Play again' })).toBeVisible();
     await expect(stage(page)).toContainText('Only points were kept');
