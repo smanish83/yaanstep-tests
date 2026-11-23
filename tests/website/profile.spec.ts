@@ -397,7 +397,7 @@ test.describe('Comfort settings for children who learn in different ways (SCRUM-
 
 test('the games sit in four frames, and a frame with nothing for the child\'s age is hidden (Manish, 23 Nov 2026)', async ({ page }) => {
   await page.goto('/sprouts.html');
-  await expect(page.locator('.games-cards .frame-h')).toHaveText(['Maths games', 'English learning games', 'Brain games and puzzles', 'World around us']);
+  await expect(page.locator('.games-cards .frame-h > span')).toHaveText(['Maths games', 'English learning games', 'Brain games and puzzles', 'World around us']);
   await expect(page.locator('.games-cards .frame-h svg.frame-icon[aria-hidden=true]')).toHaveCount(4);
   expect(await axeViolations(page)).toEqual([]);
   await withProfile(page, { age: 12 });
