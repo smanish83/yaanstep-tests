@@ -120,15 +120,19 @@ test('fits the screen and passes the accessibility scan', async ({ page }) => {
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
 });
 
-test('keeps only the level, under one key, and Reset progress in the profile clears it', async ({ page }) => {
+test('keeps only the level and the points, and Reset progress in the profile clears both', async ({ page }) => {
   await withAge(page, 7);
   await startAutoMaths(page);
   await playSet(page);
   const keys = await page.evaluate(() => Object.keys(localStorage).sort());
-  expect(keys).toEqual([LEVEL_KEY, 'ys-profile']);
+  expect(keys).toEqual([LEVEL_KEY, 'sprouts:points', 'ys-profile']);
+  const pts = JSON.parse((await page.evaluate(() => localStorage.getItem('sprouts:points')))!);
+  expect(pts.maths, 'a maths point for each question answered').toBeGreaterThanOrEqual(5);
+  expect([pts.english, pts.world]).toEqual([0, 0]);
   await page.locator('#player-close').click();
   await page.locator('#ys-badge').click();
   await page.locator('#ys-reset').click();
   await page.locator('#ys-wipe').click();
   expect(await level(page)).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('sprouts:points'))).toBeNull();
 });

@@ -9,23 +9,22 @@ import { knownBug } from '../support/known-bugs';
 test.beforeEach(() => { knownBug(); });
 
 const KEY = 'ys-profile';
-const GAMES = ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'];
-/** The games each age should see on the Learning page, written out from the age tags on the cards. */
-const FITS: Record<number, string[]> = {
-  3: ['Maths', 'Reading', 'Story time', 'Story library', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature'],
-  4: ['Maths', 'Reading', 'Story time', 'Story library', 'Sounds and beats', 'Rhymes and letter teams', 'Shapes, colors, numbers and animals', 'Learn about the world', 'Weather and temperature'],
-  5: GAMES.filter((g) => g !== 'Tens and ones' && g !== 'Fractions'),
-  6: GAMES.filter((g) => g !== 'Fractions' && g !== 'Shapes, colors, numbers and animals'),
-  7: ['Maths', 'Bar models', 'Number bonds', 'Tens and ones', 'Fractions', 'Reading', 'Story time', 'Story library', 'Parts of a sentence', 'Rhymes and letter teams', 'Phonogram games', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
-  8: ['Maths', 'Bar models', 'Tens and ones', 'Fractions', 'Story library', 'Learn about the world', 'Weather and temperature', 'Money and coins', 'Clocks and time'],
-  9: ['Maths', 'Bar models', 'Fractions', 'Story library', 'Money and coins', 'Clocks and time'],
-  12: ['Maths', 'Bar models', 'Story library'],
-};
+// The cards on the Yaanstep Sprouts page and the ages each fits (data-ages), in page order (23 Nov 2026).
+const CARDS: [string, number, number][] = [
+  ['Maths', 3, 12], ['Quick maths games', 6, 12], ['Bar models', 5, 12], ['Number bonds', 5, 7], ['Tens and ones', 6, 8],
+  ['Fractions', 7, 9], ['Money and coins', 5, 9], ['Clocks and time', 5, 9], ['Reading', 3, 7], ['Story library', 3, 12],
+  ['Sounds and beats', 4, 6], ['Parts of a sentence', 5, 7], ['Rhymes and letter teams', 3, 7], ['Phonogram games', 5, 7],
+  ['Shapes, colors, numbers and animals', 3, 5], ['Same and different', 3, 5], ['Brain games', 3, 8], ['Learn about the world', 3, 8],
+  ['Weather and temperature', 3, 8], ['Slow things to watch', 3, 12], ['Calm corner', 3, 12],
+];
+const GAMES = CARDS.map((c) => c[0]);
+/** The games each age should see on the Yaanstep Sprouts page. */
+const FITS: Record<number, string[]> = Object.fromEntries([3, 4, 5, 6, 7, 8, 9, 12].map((age) => [age, CARDS.filter((c) => age >= c[1] && age <= c[2]).map((c) => c[0])]));
 const STAGE: Record<number, string> = {
   3: 'seed', 4: 'seed', 5: 'sprout', 6: 'sprout', 7: 'small plant', 8: 'small plant',
   9: 'plant with a bud', 10: 'plant with a bud', 11: 'plant in flower', 12: 'plant in flower',
 };
-const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics'];
+const LEARNING_PAGES = ['sprouts', 'maths', 'bar-models', 'number-bonds', 'tens-and-ones', 'fractions', 'reading', 'sounds', 'rhymes', 'sentences', 'stories', 'library', 'phonograms', 'first-steps', 'money', 'clocks', 'weather', 'topics', 'calm', 'brain', 'watch'];
 
 const visibleGames = (page: Page) => page.locator('.games-cards li:visible h3').allTextContents();
 const stored = (page: Page) => page.evaluate((k) => localStorage.getItem(k), KEY);
@@ -88,11 +87,13 @@ for (const age of Object.keys(FITS).map(Number)) {
   });
 }
 
-test('the lesson cards follow the age too: Same and different for ages 3 to 4, the maths games from 6', async ({ page }) => {
+test('the two games on the page itself follow the age too: Same and different for ages 3 to 5, quick maths from 6', async ({ page }) => {
   await withProfile(page, { age: 3 });
-  expect(await page.locator('#learn .lesson-cards > li[data-ages]').evaluateAll((ls) => ls.map((l) => (l as HTMLElement).hidden))).toEqual([false, true]);
+  await expect(page.locator('#start-sorting')).toBeVisible();
+  await expect(page.locator('#start-maths-auto')).toBeHidden();
   await withProfile(page, { age: 9 });
-  expect(await page.locator('#learn .lesson-cards > li[data-ages]').evaluateAll((ls) => ls.map((l) => (l as HTMLElement).hidden))).toEqual([true, false]);
+  await expect(page.locator('#start-sorting')).toBeHidden();
+  await expect(page.locator('#start-maths-auto')).toBeVisible();
 });
 
 for (const age of Object.keys(STAGE).map(Number)) {
@@ -104,15 +105,20 @@ for (const age of Object.keys(STAGE).map(Number)) {
   });
 }
 
-test('the avatar shows the points below it, and the count follows the maths points', async ({ page }) => {
+test('the avatar shows the points below it, split by subject, and the count follows the maths points', async ({ page }) => {
   await withProfile(page, { age: 6 }, '/sprouts.html', 30);
   await expect(page.locator('#ys-pts')).toHaveText('30 points');
+  await expect(page.locator('#ys-split')).toHaveText('Maths 30 · English 0');
   const badge = (await page.locator('#ys-badge svg').boundingBox())!;
   const pts = (await page.locator('#ys-pts').boundingBox())!;
+  const split = (await page.locator('#ys-split').boundingBox())!;
   expect(pts.y, 'points sit below the avatar').toBeGreaterThan(badge.y + badge.height - 1);
-  await expect(page.locator('#ys-badge')).toHaveAccessibleName('Profile, age 6. 30 points');
+  expect(split.y, 'the split sits below the total').toBeGreaterThan(pts.y + pts.height - 1);
+  // Points for every game, split by subject (Manish, 22 Nov 2026): a screen reader hears the split in words.
+  await expect(page.locator('#ys-badge')).toHaveAccessibleName('Profile, age 6. 30 points: 30 maths, 0 English, 0 world.');
   await page.evaluate(() => localStorage.setItem('sprouts:demo', JSON.stringify({ points: 1 })));
   await expect(page.locator('#ys-pts')).toHaveText('1 point');
+  await expect(page.locator('#ys-split')).toHaveText('Maths 1 · English 0');
 });
 
 for (const p of LEARNING_PAGES) {
@@ -244,7 +250,7 @@ test.describe('Reset progress lives in the child\'s profile (SCRUM-492)', () => 
     await withProfile(page, { age: 7, nick: 'Sam' }, '/sprouts.html', 40);
     await page.evaluate(() => { localStorage.setItem('sprouts:demo-ch', '["x"]'); localStorage.setItem('demo-garden', '[1]'); localStorage.setItem('set-len', '10'); });
     await page.locator('#ys-badge').click();
-    await expect(page.locator('#ys-ptext')).toHaveText('Progress on this device: 40 points.');
+    await expect(page.locator('#ys-ptext')).toHaveText('Progress on this device: 40 points (40 maths, 0 English, 0 world).');
     await expect(page.locator('#ys-confirm')).toBeHidden();
     await page.locator('#ys-reset').click();
     await expect(page.locator('#ys-confirm')).toBeVisible();
@@ -280,15 +286,16 @@ test.describe('Reset progress lives in the child\'s profile (SCRUM-492)', () => 
 });
 
 test.describe('Comfort settings for children who learn in different ways (SCRUM-498)', () => {
-  test('the profile offers five comfort settings, chosen by need, and keeps them in the same key', async ({ page }) => {
+  test('the profile offers nine comfort settings, chosen by need, and keeps them in the same key', async ({ page }) => {
     const errors = watchErrors(page);
     await withProfile(page, { age: 6 });
     await page.locator('#ys-badge').click();
     const box = page.locator('#ys-profile .ys-comfort');
     await expect(box.locator('legend')).toHaveText('Comfort settings');
     await expect(box).toContainText('You do not need to tell us why.');
-    await expect(box.locator('button')).toHaveCount(5);
-    await expect(box.locator('button span')).toHaveText(['Easy reading', 'Calm mode', 'Bigger buttons', 'Strong contrast', 'Break reminders']);
+    await expect(box.locator('button')).toHaveCount(9);
+    await expect(box.locator('button span')).toHaveText(['Easy reading', 'Calm mode', 'Bigger buttons', 'Strong contrast', 'Break reminders', 'Fewer choices', 'Read questions aloud', 'Quiet rewards', 'Easy-reading font']);
+    for (const b of await box.locator('button small').all()) expect((await b.innerText()).length, 'a plain one-line description').toBeGreaterThan(20);
     for (const b of await box.locator('button').all()) await expect(b).toHaveAttribute('aria-pressed', 'false');
     await box.locator('button[data-comfort=easy]').click();
     await box.locator('button[data-comfort=big]').click();
@@ -372,12 +379,13 @@ test.describe('Comfort settings for children who learn in different ways (SCRUM-
     await page.goto('/accessibility.html');
     const part = page.locator('main');
     await expect(page.locator('#sprouts')).toHaveText('Yaanstep Sprouts for every child');
-    await expect(part).toContainText('We never ask about a diagnosis.');
-    await expect(part).toContainText('have not yet been tested with children with special needs');
-    await expect(part).toContainText('not therapy');
+    await expect(part).toContainText('never by a label, and we never ask why');
+    await expect(part).toContainText('What does not exist yet');
+    await expect(part).toContainText('Nothing here has been tried with children yet.');
+    await expect(part).toContainText('makes no health claims');
     const text = await part.innerText();
     for (const bad of [/\bimproves?\b/i, /\btreats?\b/i, /clinically/i, /fully accessible/i, /\bcures?\b/i]) expect(text).not.toMatch(bad);
     await page.goto('/sprouts.html');
-    await expect(page.locator('main .notice a[href="accessibility.html#sprouts"]')).toBeVisible();
+    await expect(page.locator('#comfort a[href="accessibility.html#sprouts"]')).toBeVisible();
   });
 });
