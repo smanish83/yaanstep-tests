@@ -386,6 +386,6 @@ test.describe('Comfort settings for children who learn in different ways (SCRUM-
     const text = await part.innerText();
     for (const bad of [/\bimproves?\b/i, /\btreats?\b/i, /clinically/i, /fully accessible/i, /\bcures?\b/i]) expect(text).not.toMatch(bad);
     await page.goto('/sprouts.html');
-    await expect(page.locator('main .notice a[href="accessibility.html#sprouts"]')).toBeVisible();
+    await expect(page.locator('#comfort a[href="accessibility.html#sprouts"]')).toBeVisible();
   });
 });
