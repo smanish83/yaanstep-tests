@@ -114,7 +114,7 @@ const CASES: Case[] = [
     },
   },
   {
-    name: 'Yaanstep Sprouts Same and different', path: '/sprouts.html', age: 3, area: 'world', gain: 3, play: async (p) => {
+    name: 'Yaanstep Sprouts Same and different', path: '/sprouts.html', age: 3, area: 'world', gain: 4, play: async (p) => {
       await openLearning(p);
       await p.locator('#start-sorting').click();
       await playSortingPerfectly(p);

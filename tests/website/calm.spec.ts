@@ -19,7 +19,7 @@ test('linked from Yaanstep Sprouts; loads nothing from other sites, keeps nothin
   const errors = watchErrors(page);
   const reqs = watchRequests(page);
   await page.goto('/sprouts.html');
-  await page.locator('#comfort a[href="calm.html"]').click();
+  await page.locator('.games-cards a[href="calm.html"]').click();
   await expect(page.locator('h1')).toHaveText('Calm corner');
   await expect(page).toHaveTitle('Calm corner | Yaanstep');
   await expect(page.locator('main .note').first()).toContainText('No score, no timer and no way to lose.');

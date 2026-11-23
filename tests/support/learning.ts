@@ -16,7 +16,9 @@ export const exit = (page: Page) => page.locator('#player-close');
 
 export async function openLearning(page: Page) {
   await page.goto(url('sprouts'));
-  await expect(page.locator('#learn')).toBeVisible();
+  // learning.js has run: the no-JavaScript table is hidden and the game cards are on the page.
+  await expect(page.locator('#static-lessons')).toBeHidden();
+  await expect(page.locator('.games-cards')).toBeVisible();
 }
 
 /** Opens "Grown-up: choose the game yourself" and starts the game chosen there. */
@@ -119,16 +121,31 @@ export async function playMathsPerfectly(page: Page): Promise<string[]> {
   throw new Error('The game did not reach its end screen in 20 steps');
 }
 
-/** Plays the three sorting steps by tapping. */
+/** The things that come in pairs in "Find the same" (8 kinds since 23 Nov 2026). */
+export const PAIR_KINDS = /Yes! Those two (socks|mittens|cups|hats|shirts|boots|umbrellas|bags) are the same\./;
+
+/** Step 3 of Same and different: taps the thing that fits the shadow. */
+export async function playShadow(page: Page) {
+  const shadow = (await stage(page).locator('.shadow-box svg[role=img]').getAttribute('aria-label')) ?? '';
+  const shape = shadow.replace(/^The shadow of an? /, '').replace(/, turned the other way$/, '');
+  const things = stage(page).locator('.tray button.item-btn');
+  const names = await things.evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
+  const at = names.findIndex((n) => n.endsWith(' ' + shape));
+  if (at < 0) throw new Error(`no choice fits "${shadow}": ${names}`);
+  await things.nth(at).click();
+  await expect(feedback(page)).toHaveText(`Yes! The ${shape} fits its shadow.`);
+}
+
+/** Plays the four Same and different steps by tapping: same, different, shadow, sort. */
 export async function playSortingPerfectly(page: Page) {
-  // Step 1: two things (socks, mittens, cups or hats) are the same.
+  // Step 1: two things are the same.
   const socks = stage(page).locator('.tray button.item-btn');
   const labels = await socks.evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
   const twin = labels.find((l, i) => labels.indexOf(l) !== i)!;
   const at = labels.map((l, i) => (l === twin ? i : -1)).filter((i) => i >= 0);
   await socks.nth(at[0]).click();
   await socks.nth(at[1]).click();
-  await expect(feedback(page)).toContainText(/Yes! Those two (socks|mittens|cups|hats) are the same\./);
+  await expect(feedback(page)).toContainText(PAIR_KINDS);
   await next(page).click();
   // Step 2: one thing is different.
   const things = stage(page).locator('.tray button.item-btn');
@@ -136,8 +153,11 @@ export async function playSortingPerfectly(page: Page) {
   await things.nth(names.findIndex((l) => names.indexOf(l) === names.lastIndexOf(l))).click();
   await expect(feedback(page)).toHaveText(/^Yes! The .+ is different\.$/);
   await next(page).click();
-  // Step 3: sort six things into two baskets (by color, shape or size).
-  for (let i = 0; i < 6; i++) {
+  // Step 3: match the shadow.
+  await playShadow(page);
+  await next(page).click();
+  // Step 4: sort six (eight from age 4) things into two baskets.
+  for (let i = 0; i < 8 && (await stage(page).locator('.tray button[data-group]').count()); i++) {
     const item = stage(page).locator('.tray button[data-group]').first();
     const group = await item.getAttribute('data-group');
     await item.click();

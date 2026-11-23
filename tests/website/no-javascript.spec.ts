@@ -40,4 +40,6 @@ test('Learning shows what the games cover instead of the games', async ({ page }
   await expect(page.locator('#learn')).toBeHidden();
   await expect(page.locator('#static-lessons')).toBeVisible();
   await expect(page.locator('#static-lessons tbody tr')).toHaveCount(2);
+  await expect(page.locator('.games-cards .js-card').first()).toBeHidden(); // the two games that need JavaScript stay out of the list
+  await expect(page.locator('.games-cards .js-card:visible')).toHaveCount(0);
 });

@@ -4,7 +4,7 @@ import { axeViolations, expectNothingStored, horizontalOverflow, watchErrors, wa
 import { knownBug } from '../support/known-bugs';
 import {
   answerFromPicture, answerFromStory, exit, feedback, next, numberButton, openLearning, playMathsPerfectly,
-  playSortingPerfectly, progress, rightAnswer, stage, startMaths, startSorting, story, title, type Kind, type Style,
+  playSortingPerfectly, playShadow, PAIR_KINDS, progress, rightAnswer, stage, startMaths, startSorting, story, title, type Kind, type Style,
 } from '../support/learning';
 
 // The Learning page (sample lessons for a parent and child). SCRUM-387.
@@ -20,21 +20,32 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('what the page tells a parent', () => {
-  test('says the lessons are samples made by AI, not tested with children, and nothing is saved', async ({ page }) => {
+  test('one short note at the top says the games are samples made by AI, not tested with children, and nothing is recorded or sent (Manish, 23 Nov 2026)', async ({ page }) => {
     const notice = page.locator('main .notice[role=note]');
-    await expect(notice).toContainText('Samples only.');
-    await expect(notice).toContainText("Made by Yaanstep's AI team.");
-    await expect(notice).toContainText('Not tested with children.');
-    await expect(notice).toContainText('Not a replacement for school.');
-    await expect(notice).toContainText('No sign-in. Nothing is sent. No cookies, no trackers, no ads.');
+    await expect(notice).toHaveCount(1);
+    await expect(notice).toContainText("free samples made by Yaanstep's AI team, not yet tested with children");
+    await expect(notice).toContainText('No sign-in and no ads; nothing is recorded or sent, and only points are kept on this device, with a child profile.');
+    await expect(page.locator('main .lead')).toContainText('Short lessons and games to try with your child.');
   });
 
-  test('the footer says the app is 13 and up and these lessons are for a parent and child together', async ({ page }) => {
-    await expect(page.locator('main .notice')).toContainText('The sample lessons on this page are for a parent and child to use together.'); // SCRUM-469: moved from the footer to the page notice
+  test('the cards no longer repeat the age or the voice and privacy lines (Manish, 23 Nov 2026)', async ({ page }) => {
+    const cards = page.locator('.games-cards > li');
+    expect(await cards.count()).toBeGreaterThan(15);
+    await expect(page.locator('.games-cards .tag')).toHaveCount(0);
+    const text = await page.locator('.games-cards').innerText();
+    expect(text).not.toMatch(/Ages? \d+ (to|and up)/);
+    expect(text).not.toMatch(/own voice|Nothing is recorded|Only points are kept/);
+    // Every card has its own picture, hidden from screen readers because the heading names the card.
+    for (const li of await cards.all()) {
+      await expect(li.locator('svg.card-icon[aria-hidden=true]')).toHaveCount(1);
+    }
+    const pictures = await page.locator('.games-cards svg.card-icon').evaluateAll((s) => s.map((x) => x.innerHTML));
+    expect(new Set(pictures).size, 'each card has a different picture').toBe(pictures.length);
   });
 
-  test('offers both games and hides the no-JavaScript table', async ({ page }) => {
-    await expect(page.locator('#start-sorting')).toBeVisible();
+  test('offers both games among the other cards and hides the no-JavaScript table', async ({ page }) => {
+    await expect(page.locator('.games-cards #start-sorting')).toBeVisible();
+    await expect(page.locator('.games-cards #start-maths-auto')).toBeVisible();
     await expect(page.locator('#start-maths-auto')).toBeVisible(); // SCRUM-494: one Start; the game menus wait behind a "Grown-up" toggle
     await expect(page.locator('#static-lessons')).toBeHidden();
     await expect(page.locator('#player')).toBeHidden();
@@ -105,18 +116,18 @@ test.describe('the sums are right (generated questions)', () => {
   });
 });
 
-test.describe('Same and different (age 3, with a grown-up)', () => {
+test.describe('Same and different (ages 3 to 5, with a grown-up)', () => {
   test('can be played to the end by tapping', async ({ page }) => {
     const errors = watchErrors(page);
     await startSorting(page);
-    await expect(page.locator('#player-kicker')).toHaveText('Same and different · age 3, with a grown-up');
+    await expect(page.locator('#player-kicker')).toHaveText('Same and different · with a grown-up');
     await expect(title(page)).toHaveText('Find the same');
-    await expect(progress(page)).toHaveText('Step 1 of 4');
+    await expect(progress(page)).toHaveText('Step 1 of 5');
     await expect(next(page)).toBeDisabled();
     await playSortingPerfectly(page);
     await expect(title(page)).toHaveText('Now do it for real');
-    await expect(progress(page)).toHaveText('Step 4 of 4');
-    await expect(page.locator('#player-say')).toContainText('Pair up real socks together.');
+    await expect(progress(page)).toHaveText('Step 5 of 5');
+    await expect(page.locator('#player-say p:not(.who)').first()).toHaveText(/^(Pair up|Find|Line up|Fold|Sort|Look)\b.+\.$/);
     await expect(next(page)).toBeHidden();
     await expect(stage(page).getByRole('button', { name: 'Play again' })).toBeVisible();
     await expect(stage(page)).toContainText('Only points were kept');
@@ -154,6 +165,8 @@ test.describe('Same and different (age 3, with a grown-up)', () => {
     await next(page).click();
     const names = await stage(page).locator('.tray button.item-btn').evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
     await stage(page).locator('.tray button.item-btn').nth(names.findIndex((l) => names.indexOf(l) === names.lastIndexOf(l))).click();
+    await next(page).click();
+    await playShadow(page);
     await next(page).click();
     await stage(page).locator('button.basket').first().click();
     await expect(feedback(page)).toHaveText('Pick one to move first.');
@@ -193,10 +206,12 @@ test.describe('Same and different (age 3, with a grown-up)', () => {
     const labels = await socks.evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
     const twin = labels.find((l, i) => labels.indexOf(l) !== i)!;
     await socks.nth(labels.indexOf(twin)).dragTo(socks.nth(labels.lastIndexOf(twin)), { steps: 8 });
-    await expect(feedback(page)).toContainText(/Yes! Those two (socks|mittens|cups|hats) are the same\./);
+    await expect(feedback(page)).toContainText(PAIR_KINDS);
     await next(page).click();
     const names = await stage(page).locator('.tray button.item-btn').evaluateAll((b) => b.map((x) => x.getAttribute('aria-label') ?? ''));
     await stage(page).locator('.tray button.item-btn').nth(names.findIndex((l) => names.indexOf(l) === names.lastIndexOf(l))).click();
+    await next(page).click();
+    await playShadow(page);
     await next(page).click();
     const item = stage(page).locator('.tray button[data-group]').first();
     const group = await item.getAttribute('data-group');
@@ -230,7 +245,7 @@ test.describe('Same and different (age 3, with a grown-up)', () => {
     await playSortingPerfectly(page);
     await stage(page).getByRole('button', { name: 'Play again' }).click();
     await expect(title(page)).toHaveText('Find the same');
-    await expect(progress(page)).toHaveText('Step 1 of 4');
+    await expect(progress(page)).toHaveText('Step 1 of 5');
     await expect(next(page)).toBeDisabled();
   });
 });
@@ -408,12 +423,12 @@ test.describe('game mode', () => {
   test('while a game is open the page shows only the game, and Exit brings the page back', async ({ page }) => {
     await startMaths(page);
     await expect(page.locator('body')).toHaveClass(/\bplaying\b/);
-    for (const hidden of ['header.site', 'footer.site', 'main h1', 'main .notice', '.lesson-cards']) await expect(page.locator(hidden), hidden).toBeHidden();
+    for (const hidden of ['header.site', 'footer.site', 'main h1', 'main .notice', '.games-cards']) await expect(page.locator(hidden), hidden).toBeHidden();
     await expect(page.locator('#player')).toBeVisible();
     await expect(exit(page)).toBeVisible();
     await exit(page).click();
     await expect(page.locator('#player')).toBeHidden();
-    for (const shown of ['header.site', 'footer.site', 'main h1', 'main .notice', '.lesson-cards']) await expect(page.locator(shown), shown).toBeVisible();
+    for (const shown of ['header.site', 'footer.site', 'main h1', 'main .notice', '.games-cards']) await expect(page.locator(shown), shown).toBeVisible();
     await expect(page.locator('#start-maths')).toBeFocused();
     await expect(stage(page)).toBeEmpty();
   });

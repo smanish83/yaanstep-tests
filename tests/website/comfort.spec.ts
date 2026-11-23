@@ -301,9 +301,10 @@ test.describe('Comfort settings without a profile', () => {
   test('Yaanstep Sprouts links to them; a grown-up can choose them with no age, and they stay when an age is picked', async ({ page, context }) => {
     const errors = watchErrors(page);
     await page.goto('/sprouts.html');
-    await expect(page.locator('main .notice a[href="#comfort"]')).toBeVisible();
-    await expect(page.locator('main .notice a[href="calm.html"]')).toBeVisible();
-    await expect(page.locator('#comfort a[href="calm.html"]')).toBeVisible();
+    // Calm play sits among the other cards, not in a section of its own (Manish, 23 Nov 2026).
+    await expect(page.locator('.games-cards a[href="calm.html"]')).toBeVisible();
+    await expect(page.locator('.games-cards a[href="watch.html"]')).toBeVisible();
+    await expect(page.locator('#comfort h2')).toHaveText('Comfort settings');
     await page.locator('#comfort [data-ys-comfort]').click();
     const dlg = page.locator('#ys-comfort-dlg');
     await expect(dlg).toBeVisible();
@@ -384,7 +385,7 @@ test.describe('Banned words (ACCESS rules): none on the changed pages', () => {
   const BANNED = [/therap/i, /treatment/i, /diagnos/i, /special needs/i, /\bproven\b/i, /clinical/i, /suitable for/i, /fully accessible/i,
     /dyslexi/i, /autis/i, /\bADHD\b/, /\bADD\b/, /down syndrome/i, /hearing loss/i, /low vision/i, /\bblind/i, /\bdeaf/i, /dyspraxi/i,
     /dyscalculi/i, /cerebral palsy/i, /epilep/i, /asperger/i, /\bSEND?\b/, /disorder/i, /impair/i, /\bcures?\b/i];
-  for (const path of ['/accessibility.html', '/sprouts.html', '/calm.html']) {
+  for (const path of ['/accessibility.html', '/sprouts.html', '/calm.html', '/watch.html']) {
     test(`${path}`, async ({ page }) => {
       await page.goto(path);
       const text = [await page.locator('main').innerText(), await page.title(), (await page.locator('meta[name="description"]').getAttribute('content')) ?? ''].join(' ');
