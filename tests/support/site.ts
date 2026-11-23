@@ -20,12 +20,11 @@ export interface SiteProfile {
 
 const live: SiteProfile = {
   name: 'live',
-  pages: ['index', 'how-it-works', 'team', 'testers', 'try-it', 'time-calculator', 'sprouts', 'pricing', 'privacy', 'terms', 'accessibility', 'teens'],
+  pages: ['index', 'how-it-works', 'team', /* 'testers': unlinked since 23 Nov 2026 */ 'try-it', 'time-calculator', 'sprouts', 'pricing', 'privacy', 'terms', 'accessibility', 'teens'],
   menu: [
     { label: 'Home', href: 'index.html' },
     { label: 'How it works', href: 'how-it-works.html' },
     { label: 'Team', href: 'team.html' },
-    { label: 'Join the testers', href: 'testers.html' },
   ],
   exactMenu: true,
   themes: ['', 'sunrise', 'midnight', 'bloom'],

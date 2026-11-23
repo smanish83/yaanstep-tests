@@ -14,9 +14,13 @@ const VOICE = `window.__said=[];
 
 const PAGES = [
   { file: 'money', h1: 'Money and coins', parts: 6, games: ['count', 'pay', 'change'] },
-  { file: 'clocks', h1: 'Clocks and time', parts: 7, games: ['read', 'set', 'howlong'] },
+  // Clocks also has Time around the world and Set the kitchen timer (23 Nov 2026); clocks-world-timer.spec.ts plays those.
+  { file: 'clocks', h1: 'Clocks and time', parts: 7, games: ['read', 'set', 'howlong'], others: ['world', 'timer'] },
   { file: 'weather', h1: 'Weather and temperature', parts: 6, games: ['find', 'dress', 'read', 'compare'] },
 ] as const;
+
+/** Menu games this file does not play (another spec does). */
+const others = (p: (typeof PAGES)[number]) => ('others' in p ? p.others.length : 0);
 
 async function open(page: Page, file: string) {
   await page.addInitScript(VOICE);
@@ -64,7 +68,7 @@ for (const p of PAGES) {
     await page.goto('/sprouts.html');
     await page.locator(`a[href="${p.file}.html"]`).click();
     await expect(page.locator('h1')).toHaveText(p.h1);
-    await expect(page.locator('#menu .step')).toHaveCount(p.games.length + 1);
+    await expect(page.locator('#menu .step')).toHaveCount(p.games.length + others(p) + 1);
     expect(await axeViolations(page)).toEqual([]);
     await page.setViewportSize({ width: 320, height: 700 });
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
@@ -86,7 +90,7 @@ for (const p of PAGES) {
       if (i < p.parts) await page.locator('#nextpart').click();
     }
     await expect(page.locator('#nextpart')).toHaveCount(0);
-    await expect(page.locator('[data-go]')).toHaveCount(p.games.length);
+    await expect(page.locator('[data-go]')).toHaveCount(p.games.length + others(p));
     expect(await axeViolations(page, '#game')).toEqual([]);
     await page.locator(`[data-go="${p.games[0]}"]`).click();
     await expect(page.locator('#count')).toHaveText('Round 1 of 8');

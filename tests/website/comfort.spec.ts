@@ -385,7 +385,7 @@ test.describe('Banned words (ACCESS rules): none on the changed pages', () => {
   const BANNED = [/therap/i, /treatment/i, /diagnos/i, /special needs/i, /\bproven\b/i, /clinical/i, /suitable for/i, /fully accessible/i,
     /dyslexi/i, /autis/i, /\bADHD\b/, /\bADD\b/, /down syndrome/i, /hearing loss/i, /low vision/i, /\bblind/i, /\bdeaf/i, /dyspraxi/i,
     /dyscalculi/i, /cerebral palsy/i, /epilep/i, /asperger/i, /\bSEND?\b/, /disorder/i, /impair/i, /\bcures?\b/i];
-  for (const path of ['/accessibility.html', '/sprouts.html', '/calm.html', '/watch.html']) {
+  for (const path of ['/accessibility.html', '/sprouts.html', '/calm.html', '/watch.html', '/compare.html', '/opposites.html', '/find-difference.html']) {
     test(`${path}`, async ({ page }) => {
       await page.goto(path);
       const text = [await page.locator('main').innerText(), await page.title(), (await page.locator('meta[name="description"]').getAttribute('content')) ?? ''].join(' ');
