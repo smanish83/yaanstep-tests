@@ -119,7 +119,7 @@ test.describe('Same and different (age 3, with a grown-up)', () => {
     await expect(page.locator('#player-say')).toContainText('Pair up real socks together.');
     await expect(next(page)).toBeHidden();
     await expect(stage(page).getByRole('button', { name: 'Play again' })).toBeVisible();
-    await expect(stage(page)).toContainText('Nothing was saved.');
+    await expect(stage(page)).toContainText('Only points were kept');
     expect(errors).toEqual([]);
   });
 
@@ -248,7 +248,7 @@ test.describe('Maths games (age 6 and up)', () => {
       expect(titles[5]).toBe(style === 'race' ? 'You reached the flag!' : 'Well done!');
       await expect(stage(page)).toContainText('You worked out all 5 questions. Right on the first try: 5.');
       await expect(stage(page).locator('.stars')).toHaveText('★★★★★');
-      await expect(stage(page)).toContainText('Nothing is saved.');
+      await expect(stage(page)).toContainText('Only points are kept');
       expect(errors).toEqual([]);
     });
   }
