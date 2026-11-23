@@ -192,8 +192,9 @@ test('a right answer first time earns 10 points, shows a clear "good job" messag
   await questions(page, '7-8');
   await page.clock.pauseAt(new Date(dayTime(300).getTime() + 10 * 60_000)); // stop the clock: only runFor moves time, so the check cannot be hit by a slow machine
   const first = (await snapshot(page)).prompt;
+  const right = rightAnswer(await snapshot(page));
   const before = await points(page);
-  await tap(page, rightAnswer(await snapshot(page)));
+  await tap(page, right);
   await expect(page.locator('#msg .good')).toBeVisible();
   await expect(page.locator('#msg .good')).toHaveAttribute('role', 'status');
   await expect(page.locator('#msg')).toContainText(/Good job!|Great work!|Well done!|Super!|Brilliant!/);
@@ -201,7 +202,8 @@ test('a right answer first time earns 10 points, shows a clear "good job" messag
   await expect(page.locator('#msg .spin')).toHaveCount(0);
   expect(await points(page)).toBe(before + 10);
   await page.clock.runFor(10_000);
-  expect((await snapshot(page)).prompt, 'still the same question after 10 seconds: nothing plays on by itself').toBe(first);
+  // The "?" is filled in with the answer once it is right (Manish, 23 Nov 2026); otherwise it is the same question.
+  expect((await page.locator('#q').innerText()).trim(), 'still the same question after 10 seconds: nothing plays on by itself').toBe(first.includes('?') ? first.replace('?', String(right.text)) : first);
   await page.locator('#skip').click();
   await expect(page.locator('#bar .seg.now')).toBeVisible();
   await expect(page.locator('#msg .good')).toHaveCount(0);
