@@ -245,7 +245,7 @@ for (const id of PAGE_IDS) {
           await expect(page.locator('#count')).toHaveText(`Round ${k + 1} of 8`);
           await expect(page.locator('#prompt')).toBeFocused();
           const r = await current(page);
-          const tiles = await page.locator('#choices button').evaluateAll((bs) => bs.map((b) => ({ v: b.getAttribute('data-v')!, name: b.querySelector('.sr')?.textContent ?? '', items: b.querySelectorAll('.it').length, seen: (b.textContent ?? '').replace(b.querySelector('.sr')?.textContent ?? '', '').trim() })));
+          const tiles = await page.locator('#choices button').evaluateAll((bs) => bs.map((b) => ({ v: b.getAttribute('data-v')!, name: b.querySelector('.sr')?.textContent ?? '', items: b.querySelectorAll('.it').length, seen: (b.querySelector('.w, .wordtile')?.textContent ?? (b.textContent ?? '').replace(b.querySelector('.sr')?.textContent ?? '', '')).trim() })));
           expect(tiles.map((t) => t.v).sort()).toEqual((r.choices as string[]).map(String).sort());
           for (const t of tiles) expect(t.name.length, `${g}: tile ${t.v} has a name`).toBeGreaterThan(0);
           if (id === 'compare') {
