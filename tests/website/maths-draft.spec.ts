@@ -171,10 +171,17 @@ test('a wrong answer gets a kind hint, is switched off, takes nothing away, turn
   await expect(page.locator('#msg')).toContainText('Try again.');
   await expect(wrongButton).toBeDisabled();
   await expect(page.locator('#msg')).not.toContainText(/wrong|incorrect|fail|bad|lose|lost|minus|-\s?\d+ points/i);
+  // A sum with a "?" also shows the wrong try as a sum and a picture (Manish, 23 Nov 2026).
+  const drawable = /^\d+ [+\-−] (\d+|\?) = (\d+|\?)$/.test(s.prompt) && Math.max(...(s.prompt.match(/\d+/g) ?? ['0']).map(Number), Number(wrong)) <= 20;
+  if (drawable) {
+    await expect(page.locator('#msg .sum-try')).toBeVisible();
+    await expect(page.locator('#msg .sum-try')).toContainText(wrong);
+  }
   await expect(page.locator('#bar .seg.now')).toHaveClass(/miss/);
   expect(await points(page), 'nothing is taken away').toBe(before);
   await page.locator('#opts button', { hasText: new RegExp(`^\\s*${right}\\s*$`) }).click();
   await expect(page.locator('#msg .good')).toContainText(/You got it!/);
+  if (s.prompt.includes('?') && /=/.test(s.prompt)) await expect(page.locator('#q'), 'the ? becomes the answer').toHaveText(s.prompt.replace('?', right));
   expect(await points(page), 'a right answer after a mistake earns 5').toBe(before + 5);
   await expect(page.locator('#opts button:not([disabled])')).toHaveCount(0);
   await next(page);
