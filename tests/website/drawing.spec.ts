@@ -8,6 +8,8 @@ import { axeViolations, horizontalOverflow, storedData, watchErrors, watchReques
 // (category, then subject such as Rose or Sunflower, then its pages), each with the Yaanstep Sprouts name in a corner;
 // color on screen, print, or download as PNG or PDF. Plus step-by-step drawing, one line at a time, with a drawing box.
 // No points, nothing stored, nothing sent.
+// Levels (Manish 23 Nov 2026, "add filter and the level (easy, medium, hard)"): every coloring page and every
+// step-by-step drawing is Easy, Medium or Hard, and big buttons show only one level.
 
 const SITE = process.env.SITE_DIR ?? '../yaanstep-website';
 const VOICE = `window.__said=[];
@@ -17,7 +19,7 @@ const VOICE = `window.__said=[];
   SS.cancel=()=>{};
   SS.speak=(u)=>{ window.__said.push(u.text); };`;
 
-interface Sub { id: string; name: string; n: number; easy: number }
+interface Sub { id: string; name: string; n: number; lv: string }
 interface Cat { id: string; name: string; icon: string; subjects: Sub[] }
 interface Index { total: number; categories: Cat[] }
 
@@ -33,6 +35,7 @@ test('every coloring page exists, is our own SVG with the Yaanstep Sprouts name,
   expect(ix.categories.length).toBeGreaterThanOrEqual(12);
   const problems: string[] = [];
   let counted = 0;
+  const levels = [0, 0, 0, 0];
   const ids = new Set<string>();
   for (const c of ix.categories) {
     if (ids.has(c.id)) problems.push(`category ${c.id} twice`);
@@ -40,7 +43,9 @@ test('every coloring page exists, is our own SVG with the Yaanstep Sprouts name,
     if (c.subjects.length < 3) problems.push(`${c.id}: only ${c.subjects.length} pictures`);
     if (!c.subjects.some((s) => `${s.id}-1.svg` === c.icon)) problems.push(`${c.id}: icon ${c.icon} is not a first page`);
     for (const s of c.subjects) {
-      if (!s.name.trim() || s.n < 1 || s.easy < 1) problems.push(`${c.id}/${s.id}: name, page count or easy pages missing`);
+      if (!s.name.trim() || s.n < 1) problems.push(`${c.id}/${s.id}: name or page count missing`);
+      if (!new RegExp(`^[123]{${s.n}}$`).test(s.lv ?? '')) problems.push(`${c.id}/${s.id}: no Easy, Medium or Hard for every page`);
+      for (const d of '123') levels[+d] += (s.lv ?? '').split(d).length - 1;
       const seen = new Map<string, number>();
       for (let n = 1; n <= s.n; n++) {
         counted++;
@@ -59,6 +64,9 @@ test('every coloring page exists, is our own SVG with the Yaanstep Sprouts name,
   }
   expect(counted).toBe(ix.total);
   expect(problems.slice(0, 30)).toEqual([]);
+  for (const d of [1, 2, 3]) expect(levels[d], `pages at level ${d}`).toBeGreaterThanOrEqual(300);
+  const patterns = ix.categories.find((c) => c.id === 'patterns');
+  if (patterns) expect(patterns.subjects.every((s) => !s.lv.includes('1')), 'patterns and mandalas are never Easy').toBe(true);
 });
 
 test('the Drawing page opens with two picture choices, loads nothing from other sites and stores nothing', async ({ page, context }) => {
@@ -99,7 +107,8 @@ test('coloring: pick a picture, then a flower, then a page; color it by tapping,
   const sub = flowers.subjects[0];
   await page.locator(`#subs a[href="#color/${flowers.id}/${sub.id}"]`).click();
   await expect(page.locator('#vars .tile-a')).toHaveCount(sub.n);
-  await expect(page.locator('#vars .tag')).toHaveCount(sub.easy);
+  const NAMES = ['', 'Easy', 'Medium', 'Hard'];
+  await expect(page.locator('#vars .tag')).toHaveText([...sub.lv].map((d) => NAMES[+d]));
   expect(await axeViolations(page, '#v-vars')).toEqual([]);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
 
@@ -225,4 +234,70 @@ test('every step-by-step stroke is a valid path and each drawing ends by asking 
     return out;
   });
   expect(bad).toEqual([]);
+});
+
+test('Easy, Medium and Hard buttons show only pages and drawings at that level, and the choice stays while browsing', async ({ page, context }) => {
+  const errors = watchErrors(page);
+  await open(page, '#color');
+  const ix: Index = await (await page.request.get('/coloring/index.json')).json();
+  const bar = page.locator('#v-cats .lvbar');
+  await expect(bar.locator('button')).toHaveText([/All/, /Easy/, /Medium/, /Hard/]);
+  await expect(bar.locator('button[data-lv="0"]')).toHaveAttribute('aria-pressed', 'true');
+  for (const b of await bar.locator('button').all()) {
+    const box = (await b.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(48);
+    expect(box.width).toBeGreaterThanOrEqual(48);
+  }
+
+  await bar.locator('button[data-lv="1"]').click();
+  await expect(bar.locator('button[data-lv="1"]')).toHaveAttribute('aria-pressed', 'true');
+  expect((await said(page)).at(-1)).toBe('Easy');
+  const easyIn = (s: Sub) => [...s.lv].filter((d) => d === '1').length;
+  const easyCats = ix.categories.filter((c) => c.subjects.some((s) => easyIn(s) > 0));
+  const easyTotal = ix.categories.reduce((t, c) => t + c.subjects.reduce((u, s) => u + easyIn(s), 0), 0);
+  await expect(page.locator('#cats .tile-a')).toHaveCount(easyCats.length);
+  await expect(page.locator('#total')).toContainText(`${easyTotal} easy coloring pages`);
+  expect(await axeViolations(page, '#v-cats')).toEqual([]);
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+
+  // a picture with easy and harder pages
+  const cat = easyCats.find((c) => c.subjects.some((s) => easyIn(s) > 0 && easyIn(s) < s.n))!;
+  const sub = cat.subjects.find((s) => easyIn(s) > 0 && easyIn(s) < s.n)!;
+  await page.locator(`#cats a[href="#color/${cat.id}"]`).click();
+  await expect(page.locator('#v-subs .lvbar button[data-lv="1"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#subs .tile-a')).toHaveCount(cat.subjects.filter((s) => easyIn(s) > 0).length);
+  await page.locator(`#subs a[href="#color/${cat.id}/${sub.id}"]`).click();
+  await expect(page.locator('#vars .tile-a')).toHaveCount(easyIn(sub));
+  await expect(page.locator('#vars .tag')).toHaveText(Array(easyIn(sub)).fill('Easy'));
+
+  // Next page skips the pages that are not easy
+  const easyPages = [...sub.lv].map((d, i) => (d === '1' ? i + 1 : 0)).filter(Boolean);
+  await page.locator('#vars .tile-a').first().click();
+  await expect(page.locator('#page-h')).toHaveText(`${sub.name}, page ${easyPages[0]} (Easy)`);
+  await expect(page.locator('#prev')).toHaveAttribute('aria-disabled', 'true');
+  if (easyPages.length > 1) {
+    await page.locator('#next').click();
+    await expect(page.locator('#page-count')).toHaveText(`Page ${easyPages[1]} of ${sub.n}`);
+  }
+
+  // All shows every page again
+  await page.locator('#page-back').click();
+  await page.locator('#v-vars .lvbar button[data-lv="0"]').click();
+  await expect(page.locator('#vars .tile-a')).toHaveCount(sub.n);
+
+  // the same buttons on step by step
+  await page.goto('/drawing.html#steps');
+  const list = await page.evaluate(() => (window as any).YS_DRAW.steps()) as { level: number }[];
+  await page.locator('#v-steps .lvbar button[data-lv="3"]').click();
+  await expect(page.locator('#steplist .tile-a')).toHaveCount(list.filter((d) => d.level === 3).length);
+  await expect(page.locator('#steplist .tag')).toHaveText(Array(list.filter((d) => d.level === 3).length).fill('Hard'));
+  await expect(page.locator('#steplist h3')).toHaveText(['Hard, ages 8 to 12']);
+  await page.locator('#v-steps .lvbar button[data-lv="1"]').click();
+  await expect(page.locator('#steplist .tile-a')).toHaveCount(list.filter((d) => d.level === 1).length);
+  expect(await axeViolations(page, '#v-steps')).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 640 });
+  expect(await horizontalOverflow(page), 'at 320 px').toBeLessThanOrEqual(1);
+
+  expect((await storedData(page, context)).local).toEqual([]);
+  expect(errors).toEqual([]);
 });
