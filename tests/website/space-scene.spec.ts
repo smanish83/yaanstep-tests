@@ -50,7 +50,9 @@ async function expectShown(page: Page, id: string, p: Awaited<ReturnType<typeof 
   await expect(page.locator('#sky .sky-btn.on')).toHaveCount(1);
   await expect(btn(page, id)).toHaveClass(/\bon\b/);
   const last = (await said(page)).at(-1)!;
-  expect(last).toBe(`${NAMES[id]}. ${p.say[id]} ${p.compare[id]}`);
+  const base = `${NAMES[id]}. ${p.say[id]} ${p.compare[id]}`;
+  // The last part looked at also says the picture is done (and gives the World point).
+  expect([base, `${base} You looked at every part of the picture. Well done!`]).toContain(last);
 }
 
 test('the space topic opens one picture of the Sun and the planets: accessible, loads nothing from other sites, stores nothing', async ({ page, context }) => {
