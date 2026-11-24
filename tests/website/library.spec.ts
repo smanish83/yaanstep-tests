@@ -10,7 +10,9 @@ interface Book {
   credits: { authors: string[]; illustrators: string[]; translators: string[]; publisher: string; platform: string; source: string; licence: string; licenceUrl: string; changes: string };
 }
 
+// These tests read with the device voice; recorded stories are tested below, so recordings are switched off here.
 const FAKE_VOICE = `window.__said=[];
+  HTMLMediaElement.prototype.canPlayType=()=>'';
   window.SpeechSynthesisUtterance=class{constructor(t){this.text=t;this.rate=1;this.voice=null;this.lang='';}};
   const SS=window.speechSynthesis;
   SS.getVoices=()=>[{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'}];
@@ -238,4 +240,98 @@ test('stores nothing, and the Yaanstep Sprouts page links to the library', async
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
   await page.goto('/sprouts.html');
   await expect(page.locator('a[href="library.html"]')).toHaveText('Open the library');
+});
+
+// Recorded stories (Manish, 24 Nov 2026: "Are the recorded voice better choice? I still feel that voice is not appropriain
+// chrome browser", then "Yes, start with stories"). Books marked "audio" in the catalog are read from a recording made with
+// Kokoro (an open voice), one file per page, with each word's time so the marker follows the recording.
+interface Rec { voice: string; speed: number; pages: { f: string; d: number; w: [number, number][] }[] }
+
+async function shortestRecorded(page: Page): Promise<Entry & { audio?: number }> {
+  const cat: (Entry & { audio?: number })[] = await catalog(page);
+  const rec = cat.filter((c) => c.audio).sort((a, b) => a.pages - b.pages || a.words - b.words);
+  test.skip(!rec.length, 'no recorded stories yet');
+  return rec[0];
+}
+async function openTitle(page: Page, c: Entry) {
+  await page.locator('#ages').selectOption('all');
+  await page.locator('#q').fill(c.title);
+  await page.locator(`#shelf .bookbtn[data-id="${c.id}"]`).click();
+  await expect(page.locator('#btitle')).toHaveText(c.title);
+}
+const SPEECH_SPY = `window.__said=[]; window.YS_TURN_MS=0;
+  window.SpeechSynthesisUtterance=class{constructor(t){this.text=t;this.rate=1;this.voice=null;this.lang='';}};
+  const SS=window.speechSynthesis;
+  SS.getVoices=()=>[{name:'Local Sam',lang:'en-US',localService:true,voiceURI:'ls'}];
+  SS.cancel=()=>{};
+  SS.speak=(u)=>{ window.__said.push(u.text); setTimeout(()=>u.onend&&u.onend(),20); };`;
+
+test('every recorded story has a recording for each page, with a time for every word', async ({ page }) => {
+  const cat: (Entry & { audio?: number })[] = await catalog(page);
+  const problems: string[] = [];
+  for (const c of cat.filter((x) => x.audio)) {
+    const b: Book = await (await page.request.get(`/stories/books/${c.id}.json`)).json();
+    const r = await page.request.get(`/stories/audio/${c.id}/index.json`);
+    if (!r.ok()) { problems.push(`${c.id}: no index.json`); continue; }
+    const rec: Rec = await r.json();
+    if (rec.pages.length !== b.pages.length) { problems.push(`${c.id}: ${rec.pages.length} recorded pages, ${b.pages.length} pages`); continue; }
+    rec.pages.forEach((p, i) => {
+      const words = b.pages[i].text.match(/\S+/g) || [];
+      if (p.w.length !== words.length) problems.push(`${c.id} page ${i + 1}: ${p.w.length} word times, ${words.length} words`);
+      if (!(p.d > 0)) problems.push(`${c.id} page ${i + 1}: no length`);
+      if (p.w.some(([s, e], k) => e < s || s > p.d + 0.5 || (k > 0 && s < p.w[k - 1][0]))) problems.push(`${c.id} page ${i + 1}: word times out of order`);
+    });
+    const f = await page.request.head(`/stories/audio/${c.id}/${rec.pages[0].f}`);
+    if (!f.ok()) problems.push(`${c.id}: page 1 file missing`);
+  }
+  expect(problems).toEqual([]);
+});
+
+test('a recorded story is read from its recording, with the marker on each word and the pages turning by themselves', async ({ page }) => {
+  test.setTimeout(120000);
+  const errors = watchErrors(page);
+  await page.addInitScript(SPEECH_SPY);
+  await page.goto('/library.html');
+  const c = await shortestRecorded(page);
+  const files: string[] = [];
+  page.on('request', (r) => { if (r.url().includes(`/stories/audio/${c.id}/`)) files.push(r.url().split('/').pop()!); });
+  await openTitle(page, c);
+  await expect(page.locator('#novoice')).toBeHidden();
+  await page.locator('#readall').click();
+  await expect(page.locator('#rcount')).toHaveText(`Page 1 of ${c.pages}`);
+  await expect(page.locator('#ltext .w.now')).toHaveCount(1, { timeout: 10000 });
+  expect(await page.evaluate(() => (window as any).YS_READ.recorded())).toBe(true);
+  await expect(page.locator('#ltheend')).toHaveText('The end.', { timeout: 100000 });
+  expect(files).toContain('index.json');
+  expect(files).toContain('01.webm');
+  expect(await page.evaluate(() => (window as any).__said)).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('changing the speed changes how fast the recording plays, without starting the page again', async ({ page }) => {
+  await page.addInitScript(SPEECH_SPY);
+  await page.goto('/library.html');
+  const c = await shortestRecorded(page);
+  await openTitle(page, c);
+  await page.locator('#rspeed').selectOption('0.8');
+  await page.locator('#rnext').click();
+  await page.locator('#readit').click();
+  await expect.poll(() => page.evaluate(() => { const p = (window as any).YS_READ.player(); return p && !p.paused; })).toBe(true);
+  expect(await page.evaluate(() => (window as any).YS_READ.player().playbackRate)).toBeCloseTo(1, 5);
+  await page.locator('#rspeed').selectOption('0.6');
+  expect(await page.evaluate(() => (window as any).YS_READ.player().playbackRate)).toBeCloseTo(0.75, 5);
+  expect(await page.evaluate(() => (window as any).YS_READ.player().paused)).toBe(false);
+  expect(await page.evaluate(() => (window as any).__said)).toEqual([]);
+});
+
+test('when a recording can\'t be played, the device voice reads the page instead', async ({ page }) => {
+  await page.addInitScript(SPEECH_SPY);
+  await page.route('**/stories/audio/**/*.webm', (r) => r.fulfill({ status: 404, body: '' }));
+  await page.goto('/library.html');
+  const c = await shortestRecorded(page);
+  const b: Book = await (await page.request.get(`/stories/books/${c.id}.json`)).json();
+  await openTitle(page, c);
+  await page.locator('#rnext').click();
+  await page.locator('#readit').click();
+  await expect.poll(() => page.evaluate(() => (window as any).__said)).toEqual([b.pages[0].text]);
 });
