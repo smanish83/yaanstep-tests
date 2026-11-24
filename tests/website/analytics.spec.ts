@@ -147,14 +147,14 @@ test.describe('the hidden analytics page', () => {
 
   test('with the live settings, counting shows as on with the site code', async ({ page }) => {
     const live = readFileSync(join(SITE, 'assets/analytics-config.js'), 'utf8');
-    const id = /websiteId:\s*'([^']*)'/.exec(live)?.[1] ?? '';
+    const id = /^\s*websiteId:\s*'([^']*)'/m.exec(live)?.[1] ?? '';
     await page.goto('/analytics.html');
     await page.locator('#pw').fill('sprouts2026');
     await page.locator('#gate button[type=submit]').click();
     if (!id || /PLACEHOLDER/.test(id)) {
       await expect(page.locator('#st-code')).toHaveText('Not filled in yet');
     } else {
-      await expect(page.locator('#st-on')).toHaveText(/enabled:\s*false/.test(live) ? 'Off for everyone' : 'On');
+      await expect(page.locator('#st-on')).toHaveText(/^\s*enabled:\s*false\s*,/m.test(live) ? 'Off for everyone' : 'On');
       await expect(page.locator('#st-code')).toHaveText(id);
     }
   });
