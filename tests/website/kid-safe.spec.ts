@@ -43,7 +43,7 @@ test('no blocked word appears anywhere in the dictionary words', async ({}, info
 test('no blocked word appears anywhere in the grammar lessons and questions', async ({}, info) => {
   only(info.project.name);
   const topics = load('assets/grammar', 'YS_GRAMMAR');
-  expect(topics.length).toBeGreaterThanOrEqual(14);
+  expect(topics.length).toBeGreaterThanOrEqual(17);
   const found = topics.flatMap((t) => blockedIn(strings(t).join(' \n ')).map((b) => `${t.id}: ${b}`));
   expect(found).toEqual([]);
 });
@@ -95,7 +95,22 @@ test('every grammar question has a clear answer that exists', async ({}, info) =
       if (q.k === 'tap' && q.ans.some((h: number) => h < 0 || h >= n(q.s))) problems.push(`${at}: tap index out of range`);
       if (q.k === 'build' && !(/^[A-Z]/.test(q.words[0]) && /[.!?]$/.test(q.words[q.words.length - 1]))) problems.push(`${at}: build sentence`);
       if (q.k === 'whole' && q.whole === false && !q.opts.includes(q.fix)) problems.push(`${at}: fix not among the choices`);
-      if (!['pick', 'tap', 'build', 'whole'].includes(q.k)) problems.push(`${at}: kind ${q.k}`);
+      if (q.k === 'meaning') {
+        if (!q.opts.includes(q.ans)) problems.push(`${at}: answer not among the choices`);
+        const bare = new Set(q.opts.map((o: string) => o.replace(/[^A-Za-z ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase()));
+        if (bare.size !== 1) problems.push(`${at}: meaning choices must differ only in punctuation`);
+      }
+      if (q.k === 'place') {
+        const hits = q.full.split(/\s+/).map((w: string, j: number) => (w.endsWith(q.mark) ? j : -1)).filter((j: number) => j > -1);
+        if (!hits.length || (hits.length > 1 && !Number.isInteger(q.nth)) || (q.nth ?? 0) >= hits.length) problems.push(`${at}: place mark ${q.mark}`);
+      }
+      if (q.t !== undefined || ['mixups'].includes(t.id) && q.k === 'pick') {
+        const gaps = (q.s ?? '').split('___').length - 1;
+        if (gaps !== 1) problems.push(`${at}: needs exactly one gap`);
+        else if (!/^[A-Z"].*[.!?]"?$/.test(q.s.replace('___', q.ans))) problems.push(`${at}: filled sentence "${q.s.replace('___', q.ans)}"`);
+      }
+      if (q.t !== undefined && !topics.some((x: any) => x.id === q.t)) problems.push(`${at}: topic ${q.t}`);
+      if (!['pick', 'tap', 'build', 'whole', 'place', 'meaning'].includes(q.k)) problems.push(`${at}: kind ${q.k}`);
       if (!q.why) problems.push(`${at}: no explanation`);
     });
   }

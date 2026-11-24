@@ -72,6 +72,37 @@ test('a child profile picks the word for that age group, and a grown-up can swit
   await expect(page.locator('#wotd')).toHaveAttribute('data-word', old);
 });
 
+test('Another word, next to Word of the day, shows a full card for a random word of the same age group, never repeats in a visit, and goes back to today', async ({ page }) => {
+  await open(page, { date: '2026-11-23', age: 4 });
+  const today = await page.locator('#wotd').getAttribute('data-word');
+  const btn = page.locator('#wotd .kickrow #next-word');
+  await expect(btn).toBeVisible();
+  await expect(btn).toHaveText('Another word');
+  await expect(page.locator('#back-today')).toHaveCount(0);
+  const seen = [today!];
+  for (let i = 0; i < 12; i++) {
+    await page.locator('#next-word').click();
+    const w = (await page.locator('#wotd').getAttribute('data-word'))!;
+    expect(seen, `"${w}" came twice in one visit`).not.toContain(w);
+    seen.push(w);
+  }
+  await expect(page.locator('#wotd .kicker')).toHaveText('Another word for ages 3 to 5');
+  await expect(page.locator('#wotd-h')).toBeFocused();
+  for (const cls of ['mean', 'splitpart', 'examples', 'family', 'synopp', 'from']) await expect(page.locator(`#wotd .${cls}`)).toBeVisible();
+  const ages = await page.evaluate((ws) => { const by: Record<string, number> = {}; (window as any).YS_WORDS_PAGE.list.forEach((e: any) => { by[e.w] = e.age; }); return ws.map((w) => by[w]); }, seen);
+  expect(Math.max(...ages), 'only words for ages 3 to 5').toBeLessThanOrEqual(5);
+  expect(await axeViolations(page)).toEqual([]);
+  expect(await horizontalOverflow(page)).toBe(0);
+  await page.locator('#back-today').click();
+  await expect(page.locator('#wotd')).toHaveAttribute('data-word', today!);
+  await expect(page.locator('#wotd .kicker')).toContainText('Word of the day');
+  await expect(page.locator('#back-today')).toHaveCount(0);
+  await page.locator('#next-word').click();
+  await page.locator('#band-big').click();
+  const old = await page.evaluate(() => (window as any).YS_WORDS_PAGE.wordOfDay('2026-11-23', 10));
+  await expect(page.locator('#wotd')).toHaveAttribute('data-word', old);
+});
+
 test('a word card shows the meaning, the colored split, many sentences, the family, same and opposite, and where it comes from', async ({ page }) => {
   await open(page, { hash: '#unhappy' });
   const card = page.locator('#word-card');
