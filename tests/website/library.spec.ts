@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { axeViolations, horizontalOverflow, watchErrors, watchRequests } from '../support/checks';
 
 // Story library (SCRUM-497, Manish 22 Nov 2026): complete free picture books with pictures, from open libraries,
@@ -31,9 +33,22 @@ test('books Manish asked to remove stay out of the library', async ({ page }) =>
   expect((await page.request.get('/stories/books/pb-ammus-puppy.json')).status()).toBe(404);
 });
 
+// Manish, 24 Nov 2026: "Similar with all other stories, if religion, or anything inappropriate, the remove that story."
+// Every story was read in full; the ones taken out are listed in removed-stories.json and must not come back.
+test('stories taken out for religion or unsuitable content stay out, with their pictures and recordings', async ({ page }) => {
+  const removed: string[] = JSON.parse(readFileSync(join(__dirname, 'removed-stories.json'), 'utf8'));
+  expect(removed.length).toBeGreaterThan(100);
+  const ids = new Set((await catalog(page)).map((c) => c.id));
+  expect(removed.filter((id) => ids.has(id))).toEqual([]);
+  for (const id of removed.slice(0, 20)) {
+    expect((await page.request.get(`/stories/books/${id}.json`)).status(), id).toBe(404);
+    expect((await page.request.get(`/stories/audio/${id}/index.json`)).status(), id).toBe(404);
+  }
+});
+
 test('every book is complete, credited and openly licensed', async ({ page }) => {
   const cat = await catalog(page);
-  expect(cat.length, 'books in the library').toBeGreaterThanOrEqual(500);
+  expect(cat.length, 'books in the library').toBeGreaterThanOrEqual(400);
   expect(new Set(cat.map((c) => c.id)).size).toBe(cat.length);
   const problems: string[] = [];
   for (const c of cat) {
@@ -97,6 +112,33 @@ test('the shelf starts on the age band from the child\'s profile', async ({ page
   await page.evaluate(() => localStorage.setItem('ys-profile', JSON.stringify({ age: 8, color: 0, nick: '' })));
   await page.reload();
   await expect(page.locator('#ages')).toHaveValue('7-9');
+});
+
+// Manish, 24 Nov 2026: "when I clicked on story, by default drop down age is 5-7. Make sure to set default for all ages
+// if no age group is selected."
+test('without a child profile the shelf starts on All ages, even after another age was picked and the page reloaded', async ({ page }) => {
+  await page.goto('/library.html');
+  await expect(page.locator('#ages')).toHaveValue('all');
+  await page.locator('#ages').selectOption('5-7');
+  await page.reload();
+  await expect(page.locator('#ages')).toHaveValue('all');
+  await page.goto('/sprouts.html');
+  await page.goBack();
+  await expect(page.locator('#ages')).toHaveValue('all');
+});
+
+// Manish, 24 Nov 2026: "while reading the stories, hide the profile icon where you show profile name, maths score etc.
+// As it is not relevant in stories."
+test('the profile badge steps aside while a story is open and comes back on the shelf', async ({ page }) => {
+  await page.addInitScript(FAKE_VOICE);
+  await page.addInitScript(() => localStorage.setItem('ys-profile', JSON.stringify({ age: 6, color: 0, nick: 'Ria' })));
+  await page.goto('/library.html');
+  await expect(page.locator('#ys-badge')).toBeVisible();
+  await page.locator('#shelf .bookbtn').first().click();
+  await expect(page.locator('#btitle')).not.toBeEmpty();
+  await expect(page.locator('#ys-badge')).toBeHidden();
+  await page.locator('#rexit').click();
+  await expect(page.locator('#ys-badge')).toBeVisible();
 });
 
 test('a book opens on its cover with credits, reads page by page with the read-along marker, and ends with the credits again', async ({ page }) => {
