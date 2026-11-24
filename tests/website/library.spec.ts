@@ -350,3 +350,17 @@ test('when a recording can\'t be played and the device has no voice, a note says
   await expect(page.locator('#recerr')).toContainText("The recording didn't play on this device");
   await expect(page.locator('#pauseread')).toBeHidden();
 });
+
+test('a recording that never starts (as on some phones) gives way to the device voice instead of silence', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.addInitScript(SPEECH_SPY);
+  await page.route('**/stories/audio/**/*.mp3', () => new Promise(() => { /* never answers */ }));
+  await page.goto('/library.html');
+  const c = await shortestRecorded(page);
+  const b: Book = await (await page.request.get(`/stories/books/${c.id}.json`)).json();
+  await openTitle(page, c);
+  await page.locator('#rnext').click();
+  await page.locator('#readit').click();
+  await expect.poll(() => page.evaluate(() => (window as any).__said), { timeout: 15000 }).toEqual([b.pages[0].text]);
+  await expect(page.locator('#recerr')).toContainText("so the device's own voice is reading instead");
+});
