@@ -127,6 +127,30 @@ test('without a child profile the shelf starts on All ages, even after another a
   await expect(page.locator('#ages')).toHaveValue('all');
 });
 
+// Manish, 24 Nov 2026: "group up books by counties or from where it got it". One row of place buttons above the shelf.
+test('the books can be shown by where they come from, with one tap and no extra page', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/library.html');
+  const cat = await catalog(page);
+  const places = page.locator('#places button');
+  await expect(places.first()).toHaveText(/Everywhere/);
+  await expect(places.first()).toHaveAttribute('aria-pressed', 'true');
+  for (const [label, platform] of [['India', 'StoryWeaver'], ['Across Africa', 'African Storybook'], ['South Africa', 'Book Dash'], ['Old American classics', 'Project Gutenberg']]) {
+    const n = cat.filter((c) => c.platform === platform).length;
+    const btn = page.locator('#places button', { hasText: label }).first();
+    await btn.click();
+    await expect(btn).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#found')).toHaveText(`${n} books`);
+    const first = await page.locator('#shelf .bookbtn').first().getAttribute('data-id');
+    expect(cat.find((c) => c.id === first)!.platform).toBe(platform);
+  }
+  await places.first().click();
+  await expect(page.locator('#found')).toHaveText(`${cat.length} books`);
+  expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+  expect(await axeViolations(page)).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 // Manish, 24 Nov 2026: "while reading the stories, hide the profile icon where you show profile name, maths score etc.
 // As it is not relevant in stories."
 test('the profile badge steps aside while a story is open and comes back on the shelf', async ({ page }) => {
