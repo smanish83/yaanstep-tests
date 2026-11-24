@@ -22,6 +22,13 @@ async function catalog(page: Page): Promise<Entry[]> {
   return (await page.request.get('/stories/catalog.json')).json();
 }
 
+// Manish, 24 Nov 2026: "Remove following story ... Ammu's Puppy".
+test('books Manish asked to remove stay out of the library', async ({ page }) => {
+  const cat = await catalog(page);
+  expect(cat.map((c) => c.title)).not.toContain("Ammu's Puppy");
+  expect((await page.request.get('/stories/books/pb-ammus-puppy.json')).status()).toBe(404);
+});
+
 test('every book is complete, credited and openly licensed', async ({ page }) => {
   const cat = await catalog(page);
   expect(cat.length, 'books in the library').toBeGreaterThanOrEqual(500);
