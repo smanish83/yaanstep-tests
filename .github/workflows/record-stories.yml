@@ -1,0 +1,66 @@
+name: Record stories
+
+# Records the library stories with Kokoro-82M (Apache-2.0), voice af_heart.
+# Push to an audio/** branch; tools/audio-batch.json says which age band, how many shards and which website branch.
+# Each shard uploads its recordings as an artifact; they are reviewed and committed to the website by hand.
+on:
+  push:
+    branches: ['audio/**']
+    paths: ['tools/audio-batch.json', 'tools/record_stories.py', '.github/workflows/record-stories.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      shards: ${{ steps.p.outputs.shards }}
+      ages: ${{ steps.p.outputs.ages }}
+      limit: ${{ steps.p.outputs.limit }}
+      ref: ${{ steps.p.outputs.ref }}
+      count: ${{ steps.p.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          f=tools/audio-batch.json
+          n=$(jq -r .shards $f)
+          echo "shards=$(jq -c '[range(0; .shards)]' $f)" >> "$GITHUB_OUTPUT"
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+          echo "ages=$(jq -r .ages $f)" >> "$GITHUB_OUTPUT"
+          echo "limit=$(jq -r '.limit // 0' $f)" >> "$GITHUB_OUTPUT"
+          echo "ref=$(jq -r '.website_ref // "main"' $f)" >> "$GITHUB_OUTPUT"
+  record:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: smanish83/yaanstep-website
+          ref: ${{ needs.plan.outputs.ref }}
+          path: site
+          sparse-checkout: |
+            stories/catalog.json
+            stories/books/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng ffmpeg
+      - run: |
+          pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -q "kokoro>=0.9.4" soundfile
+      - name: Record
+        run: python tools/record_stories.py site out --ages "${{ needs.plan.outputs.ages }}" --shard ${{ matrix.shard }} --shards ${{ needs.plan.outputs.count }} --limit ${{ needs.plan.outputs.limit }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audio-${{ matrix.shard }}
+          path: out/
+          retention-days: 14
