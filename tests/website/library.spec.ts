@@ -281,6 +281,7 @@ test('every recorded story has a recording for each page, with a time for every 
       if (!(p.d > 0)) problems.push(`${c.id} page ${i + 1}: no length`);
       if (p.w.some(([s, e], k) => e < s || s > p.d + 0.5 || (k > 0 && s < p.w[k - 1][0]))) problems.push(`${c.id} page ${i + 1}: word times out of order`);
     });
+    if (rec.pages.some((p) => !p.f.endsWith('.mp3'))) problems.push(`${c.id}: not MP3`);
     const f = await page.request.head(`/stories/audio/${c.id}/${rec.pages[0].f}`);
     if (!f.ok()) problems.push(`${c.id}: page 1 file missing`);
   }
@@ -303,7 +304,8 @@ test('a recorded story is read from its recording, with the marker on each word 
   expect(await page.evaluate(() => (window as any).YS_READ.recorded())).toBe(true);
   await expect(page.locator('#ltheend')).toHaveText('The end.', { timeout: 100000 });
   expect(files).toContain('index.json');
-  expect(files).toContain('01.webm');
+  // MP3, so iPhones and iPads play it too (Manish, 24 Nov 2026: "No, so no voice is coming.").
+  expect(files).toContain('01.mp3');
   expect(await page.evaluate(() => (window as any).__said)).toEqual([]);
   expect(errors).toEqual([]);
 });
@@ -326,7 +328,7 @@ test('changing the speed changes how fast the recording plays, without starting 
 
 test('when a recording can\'t be played, the device voice reads the page instead', async ({ page }) => {
   await page.addInitScript(SPEECH_SPY);
-  await page.route('**/stories/audio/**/*.webm', (r) => r.fulfill({ status: 404, body: '' }));
+  await page.route('**/stories/audio/**/*.mp3', (r) => r.fulfill({ status: 404, body: '' }));
   await page.goto('/library.html');
   const c = await shortestRecorded(page);
   const b: Book = await (await page.request.get(`/stories/books/${c.id}.json`)).json();
@@ -334,4 +336,17 @@ test('when a recording can\'t be played, the device voice reads the page instead
   await page.locator('#rnext').click();
   await page.locator('#readit').click();
   await expect.poll(() => page.evaluate(() => (window as any).__said)).toEqual([b.pages[0].text]);
+});
+
+test('when a recording can\'t be played and the device has no voice, a note says so instead of staying silent', async ({ page }) => {
+  await page.addInitScript(`window.YS_TURN_MS=0; window.speechSynthesis.getVoices=()=>[];`);
+  await page.route('**/stories/audio/**/*.mp3', (r) => r.fulfill({ status: 404, body: '' }));
+  await page.goto('/library.html');
+  const c = await shortestRecorded(page);
+  await openTitle(page, c);
+  await expect(page.locator('#recerr')).toBeHidden();
+  await page.locator('#readall').click();
+  await expect(page.locator('#recerr')).toBeVisible();
+  await expect(page.locator('#recerr')).toContainText("The recording didn't play on this device");
+  await expect(page.locator('#pauseread')).toBeHidden();
 });
