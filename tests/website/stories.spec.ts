@@ -74,7 +74,7 @@ test('is a public page linked from Learning and Reading: labelled, no errors, no
   await open(page);
   expect(await page.locator('meta[name=robots][content*=noindex]').count()).toBe(0);
   await expect(page.locator('h1')).toHaveText('Story time');
-  for (const t of ['our own words', 'AI team', 'no microphone', 'Not yet tested with children', 'Nothing is saved', 'asking a grown-up first before sharing food']) await expect(page.locator('body')).toContainText(t);
+  for (const t of ['our own words', 'AI team', 'no microphone', 'Not yet tested with children', 'never who you are', 'No points or progress are saved on this device', 'asking a grown-up first before sharing food']) await expect(page.locator('body')).toContainText(t);
   // Story time has only four stories, so the Yaanstep Sprouts page shows the story library instead, and Story time points to it (23 Nov 2026).
   expect(await (await request.get('/sprouts.html')).text()).not.toContain('href="stories.html"');
   await expect(page.locator('main .more a[href="library.html"]')).toBeVisible();

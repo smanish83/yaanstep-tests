@@ -155,7 +155,8 @@ test('Brain games: loads with no errors, nothing from other sites, nothing store
   const intro = await page.locator('.note').first().innerText();
   expect(intro).toMatch(/ages 3 to 8/i);
   expect(intro).toMatch(/free/i);
-  expect(intro).toMatch(/only points are kept on this device/i);
+  expect(intro).toMatch(/points are kept only on this device/i);
+  expect(intro).toMatch(/We count visits and which games are used, never who you are\./);
   await expect(page.locator('#level-note')).toContainText('set in the middle');
   expect(await axeViolations(page)).toEqual([]);
   await page.setViewportSize({ width: 320, height: 700 });

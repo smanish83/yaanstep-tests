@@ -140,7 +140,7 @@ test('is a public page linked from Learning: labelled, no errors, no outside req
   const reqs = watchRequests(page);
   await page.goto('/bar-models.html');
   await expect(page.locator('h1')).toHaveText('Bar models');
-  for (const t of ['our own', 'AI team', 'bar model method', 'Not yet tested with children', 'Only points are kept']) await expect(page.locator('body')).toContainText(t);
+  for (const t of ['our own', 'AI team', 'bar model method', 'Not yet tested with children', 'never who you are', 'Points are kept only on this device']) await expect(page.locator('body')).toContainText(t);
   await expect(page.locator('.howto li')).toHaveCount(7);
   expect(await (await request.get('/sprouts.html')).text()).toContain('href="bar-models.html"');
   await expect(page.locator('#bandlist button')).toHaveText(['Ages 5 to 6' + '5 problems', 'Ages 7 to 8' + '5 problems', 'Ages 9 to 10' + '5 problems', 'Ages 11 to 12' + '5 problems']);

@@ -139,7 +139,8 @@ test('Find the difference: loads with no errors, nothing from other sites, nothi
   expect(intro).toMatch(/ages 3 to 8/i);
   expect(intro).toMatch(/free/i);
   expect(intro).toContain('Not a replacement for school.');
-  expect(intro).toMatch(/only points are kept on this device/i);
+  expect(intro).toMatch(/points are kept only on this device/i);
+  expect(intro).toMatch(/We count visits and which games are used, never who you are\./);
   await expect(page.locator('#level-note')).toContainText('start in the middle');
   expect(await axeViolations(page)).toEqual([]);
   await page.setViewportSize({ width: 320, height: 700 });

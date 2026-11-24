@@ -163,7 +163,8 @@ for (const id of PAGE_IDS) {
     expect(note).toMatch(P.ages);
     expect(note).toMatch(/free/i);
     expect(note).toMatch(/Not a replacement for school/);
-    expect(note).toMatch(/only points are kept on this device/i);
+    expect(note).toMatch(/points are kept only on this device/i);
+    expect(note).toMatch(/We count visits and which games are used, never who you are\./);
     await expect(page.locator('body')).not.toContainText(/samples only/i);
     await expect(page.locator('#level-note')).toContainText('set in the middle');
     expect(await axeViolations(page)).toEqual([]);

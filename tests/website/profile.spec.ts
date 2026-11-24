@@ -155,7 +155,7 @@ test('tapping the avatar opens the profile: switch age, pick a color, add a nick
   await expect(dlg).toBeVisible();
   await expect(dlg.locator('h2')).toHaveText("Your child's profile");
   await expect(dlg).toContainText('Please use a nickname, not a full name.');
-  await expect(dlg).toContainText('kept only on this device. Nothing is sent.');
+  await expect(dlg).toContainText('kept only on this device. The nickname and color are never sent; when we count visits, we count only the age group, never who you are.');
   await expect(dlg.locator('input[type=file]')).toHaveCount(0);
   await expect(dlg.locator('.ys-dages button[aria-pressed="true"]')).toHaveText('5');
   await dlg.locator('.ys-dages button[data-age="8"]').click();

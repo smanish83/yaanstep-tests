@@ -20,11 +20,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('what the page tells a parent', () => {
-  test('one short note at the top says the games are samples made by AI, not tested with children, and nothing is recorded or sent (Manish, 23 Nov 2026)', async ({ page }) => {
+  test('one short note at the top says the games are made by AI, not tested with children, and that only visits are counted, never who you are (Manish, 23 and 24 Nov 2026)', async ({ page }) => {
     const notice = page.locator('main .notice[role=note]');
     await expect(notice).toHaveCount(1);
     await expect(notice).toContainText("made by Yaanstep's AI team and not yet tested with children. Not a replacement for school.");
-    await expect(notice).toContainText('No sign-in and no ads; nothing is recorded or sent, and only points are kept on this device, with a child profile.');
+    await expect(notice).toContainText('No sign-in and no ads. We count visits and which games are used, never who you are; points are kept only on this device, with a child profile.');
     await expect(page.locator('main .lead')).toContainText('Short lessons and games to try with your child.');
   });
 
@@ -34,7 +34,7 @@ test.describe('what the page tells a parent', () => {
     await expect(page.locator('.games-cards .tag')).toHaveCount(0);
     const text = await page.locator('.games-cards').innerText();
     expect(text).not.toMatch(/Ages? \d+ (to|and up)/);
-    expect(text).not.toMatch(/own voice|Nothing is recorded|Only points are kept/);
+    expect(text).not.toMatch(/own voice|Nothing is recorded|Only points are kept|Points are kept only|never who you are/);
     // Every card has its own picture, hidden from screen readers because the heading names the card.
     for (const li of await cards.all()) {
       await expect(li.locator('svg.card-icon[aria-hidden=true]')).toHaveCount(1);

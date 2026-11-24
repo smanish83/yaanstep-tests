@@ -120,7 +120,8 @@ test('Clocks: the two new games are on the menu; the page loads nothing from oth
   const note = await page.locator('.note').first().innerText();
   expect(note).toMatch(/Free\./);
   expect(note).toContain('Not a replacement for school.');
-  expect(note).toMatch(/only points are kept on this device/i);
+  expect(note).toMatch(/points are kept only on this device/i);
+  expect(note).toMatch(/We count visits and which games are used, never who you are\./);
   expect(await axeViolations(page)).toEqual([]);
   for (const g of ['world', 'timer']) {
     await page.locator(`#play-${g}`).click();

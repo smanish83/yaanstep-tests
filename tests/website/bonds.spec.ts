@@ -123,7 +123,7 @@ test('is a public page linked from Learning: labelled, no errors, no outside req
   await open(page);
   expect(await page.locator('meta[name=robots][content*=noindex]').count()).toBe(0);
   await expect(page.locator('h1')).toHaveText('Number bonds');
-  for (const t of ['our own', 'AI team', 'Not yet tested with children', 'Only points are kept']) await expect(page.locator('body')).toContainText(t);
+  for (const t of ['our own', 'AI team', 'Not yet tested with children', 'never who you are', 'Points are kept only on this device']) await expect(page.locator('body')).toContainText(t);
   expect(await (await request.get('/sprouts.html')).text()).toContain('href="number-bonds.html"');
   await page.locator('#play-track').click();
   await playOne(page, 'track', 0);

@@ -50,13 +50,15 @@ for (const p of site.pages) {
       expect(wrong).toEqual([]);
     });
 
-    test('footer says it is not therapy and that the site has no cookies or trackers', async ({ page }) => {
+    test('footer says it is not therapy, that the site has no cookies, and that visits are counted, never who you are', async ({ page }) => {
       knownBug();
       await page.goto(url(p));
       const footer = page.locator('footer');
       await expect(footer).toContainText(/not therapy/i);
       await expect(footer).toContainText(/no cookies/i);
-      await expect(footer).toContainText(/no trackers/i);
+      await expect(footer).toContainText('We count visits, which games are used and the age group of a child profile, never who you are');
+      await expect(footer).not.toContainText(/no trackers/i);
+      await expect(footer.locator('a[href="privacy.html#counting"]')).toHaveText('how we count');
       await expect(footer).toContainText(/ages 13 and up/i);
       await expect(footer).toContainText(/AI agents/);
     });
@@ -81,6 +83,22 @@ test.describe('legal pages', () => {
       await expect(main).toContainText(/not legal advice/i);
     });
   }
+
+  // Visit counting (Manish, 24 Nov 2026): the privacy page says what is counted, with what, and what never is.
+  test('privacy says how visits are counted: what, with which service, the two flags, Do Not Track, teens pages, and what is never sent', async ({ page }) => {
+    await page.goto(url('privacy'));
+    const main = page.locator('main');
+    await expect(main.locator('h2#counting')).toHaveText('Counting visits');
+    await expect(main).not.toContainText(/no trackers/i);
+    await expect(main).toContainText('This website sets no cookies.');
+    for (const t of [
+      'Umami Cloud', 'cookie-free', 'whether a visit is new or returning', 'which pages and games are opened, and which games are finished',
+      '3-4, 5-6, 7-8, 9-10 or 11-12', '"ys-seen"', '"ys-visit"', 'only while counting is on', 'Do Not Track or Global Privacy Control',
+      'The Yaanstep Teens pages, for ages 13 to 17, are not counted.',
+      'We never send names or nicknames, answers, typed or spoken words, drawings, IDs or cookies.',
+      'For ages 13 to 17, analytics are off unless you turn them on.',
+    ]) await expect(main).toContainText(t);
+  });
 });
 
 test.describe('team page', () => {
