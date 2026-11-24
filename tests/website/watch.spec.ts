@@ -103,6 +103,6 @@ test('the movement is slow: after 10 seconds of movement, the fan has turned les
 test('the wording is plain: no score, no sound, only visits counted, nothing saved, and none of the words the rules ban', async ({ page }) => {
   await page.goto('/watch.html');
   const text = await page.locator('main').innerText();
-  for (const t of ['No sound, no score and nothing to win.', 'until you tap Stop', 'not yet tested with children', 'We count visits and which games are used, never who you are.', 'No points or progress are saved on this device.']) expect(text).toContain(t);
+  for (const t of ['No sound, no score and nothing to win.', 'until you tap Stop', 'not yet tested with children', 'We count visits and which games are used, never who you are.', 'Nothing your child does is saved on this device.']) expect(text).toContain(t);
   for (const bad of [/therap/i, /treatment/i, /diagnos/i, /special needs/i, /\bproven\b/i, /clinical/i, /autis/i, /disorder/i, /\bSEND?\b/]) expect.soft(text).not.toMatch(bad);
 });
