@@ -119,6 +119,11 @@ test.describe('the hidden analytics page', () => {
 
   test('a wrong password shows nothing; the right one shows the settings and how to read the numbers', async ({ page }) => {
     const errors = watchErrors(page);
+    // Show the page as it looks before a site code is filled in, whatever the live settings say.
+    await page.route('**/assets/analytics-config.js', (r) => r.fulfill({
+      contentType: 'application/javascript',
+      body: `window.YS_ANALYTICS_CONFIG = { enabled: true, websiteId: 'PLACEHOLDER-SITE-CODE', scriptSrc: '${UMAMI}', shareUrl: '' };`,
+    }));
     await page.goto('/analytics.html');
     await expect(page.locator('#counts')).toBeHidden();
     expect(await axeViolations(page)).toEqual([]);
@@ -138,6 +143,20 @@ test.describe('the hidden analytics page', () => {
     await expect(page.locator('#counts')).toContainText(/Age groups/);
     expect(await axeViolations(page)).toEqual([]);
     expect(errors).toEqual([]);
+  });
+
+  test('with the live settings, counting shows as on with the site code', async ({ page }) => {
+    const live = readFileSync(join(SITE, 'assets/analytics-config.js'), 'utf8');
+    const id = /websiteId:\s*'([^']*)'/.exec(live)?.[1] ?? '';
+    await page.goto('/analytics.html');
+    await page.locator('#pw').fill('sprouts2026');
+    await page.locator('#gate button[type=submit]').click();
+    if (!id || /PLACEHOLDER/.test(id)) {
+      await expect(page.locator('#st-code')).toHaveText('Not filled in yet');
+    } else {
+      await expect(page.locator('#st-on')).toHaveText(/enabled:\s*false/.test(live) ? 'Off for everyone' : 'On');
+      await expect(page.locator('#st-code')).toHaveText(id);
+    }
   });
 
   test('"Don\'t count this browser" is kept in this browser only and can be turned back on', async ({ page }) => {
