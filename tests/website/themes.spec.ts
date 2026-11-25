@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/test';
 import { site, url } from '../support/site';
 import { axeViolations, expectNothingStored } from '../support/checks';
 

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../support/test';
 import { axeViolations, horizontalOverflow, storedData, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';
 import { BANDS, CHAPTERS, band, boot, dayTime, lessonArithmeticProblems, lessonPictureProblems, lessonThenQuestions, next, openChapter, playQuestions, rightAnswer, snapshot, tap, wrongAnswer } from '../support/maths-draft';

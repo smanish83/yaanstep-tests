@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/test';
 import { site, url } from '../support/site';
 
 // The site promises that every page still works with JavaScript off (README, Accessibility page). SCRUM-386.

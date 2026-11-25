@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../support/test';
 import { knownBug } from '../support/known-bugs';
 import { BANDS, CHAPTERS, FREE_KINDS, band, boot, chapterProblems, lessonThenQuestions, next, openChapter, problemsWith, rightAnswer, snapshot, tap, wrongAnswer, type Kind } from '../support/maths-draft';
 

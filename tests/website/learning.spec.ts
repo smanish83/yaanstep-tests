@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/test';
 import { SHAME_WORDS } from '../support/approved-steps';
 import { axeViolations, expectNothingStored, horizontalOverflow, watchErrors, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';

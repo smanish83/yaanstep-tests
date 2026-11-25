@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../support/test';
 import { url } from '../support/site';
 import { axeViolations, expectNothingStored, watchRequests } from '../support/checks';
 import { knownBug } from '../support/known-bugs';

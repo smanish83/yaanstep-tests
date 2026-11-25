@@ -1,0 +1,206 @@
+[
+ {
+  "key": "SCRUM-386",
+  "summary": "Automated regression suite for the whole website",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-387",
+  "summary": "Automated tests for the Learning page",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-409",
+  "summary": "Maths draft QA",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-484",
+  "summary": "QA pass and test report for hidden maths and reading drafts",
+  "automatable": true,
+  "note": "test report needs the full sweeps to finish"
+ },
+ {
+  "key": "SCRUM-482",
+  "summary": "RELEASE: Learning page and maths draft",
+  "automatable": false,
+  "note": "gate, not a test"
+ },
+ {
+  "key": "SCRUM-483",
+  "summary": "Maths: More, fewer and less comparing game",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-445",
+  "summary": "maths draft AA checks",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-517",
+  "summary": "Bar models 11-12 scale check on phone",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-491",
+  "summary": "Maths ages 9 to 12 content",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-497",
+  "summary": "Free picture-story library",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-501",
+  "summary": "Teens planner: app shell, /teens/ section and storage",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-502",
+  "summary": "Teens planner: create, edit, delete events",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-510",
+  "summary": "Teens planner: habit builder with streaks",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-511",
+  "summary": "Teens planner: daily suggestions card",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-428",
+  "summary": "Reading engine: speech component and content-pack check",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-427",
+  "summary": "Reading engine: shared components",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-434",
+  "summary": "ACCESS-04 instruction as picture, audio and text",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-435",
+  "summary": "ACCESS-05 tap-only path, large targets",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-436",
+  "summary": "ACCESS-06 no time pressure by default",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-438",
+  "summary": "ACCESS-08 keyboard, switch and screen reader",
+  "automatable": true,
+  "note": "screen reader is manual"
+ },
+ {
+  "key": "SCRUM-440",
+  "summary": "ACCESS-10 access tests",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-424",
+  "summary": "Home page, mission, vision, team page",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-26",
+  "summary": "Team page with clearly labeled AI agents",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-23",
+  "summary": "Features page by release phase",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-20",
+  "summary": "Static site skeleton, fast and accessible template",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-32",
+  "summary": "Closed-test signup page",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-36",
+  "summary": "Device-aware Get the app button",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-38",
+  "summary": "Closed-test opt-in flow end to end",
+  "automatable": true,
+  "note": ""
+ },
+ {
+  "key": "SCRUM-83",
+  "summary": "Per-user database security rules and automated tests",
+  "automatable": false,
+  "note": "needs the Firebase emulator in the app repo"
+ },
+ {
+  "key": "SCRUM-42",
+  "summary": "Web app shell with Google sign-in",
+  "automatable": false,
+  "note": "app lives in the private repo yaanstep-app"
+ },
+ {
+  "key": "SCRUM-45",
+  "summary": "Web: Pomodoro timer",
+  "automatable": false,
+  "note": "app lives in the private repo yaanstep-app"
+ },
+ {
+  "key": "SCRUM-460",
+  "summary": "Sprouts app skeleton",
+  "automatable": false,
+  "note": "repo yaanstep-sprouts, tests not wired to it yet"
+ },
+ {
+  "key": "SCRUM-388",
+  "summary": "Exploratory and accessibility testing",
+  "automatable": false,
+  "note": "Manish's manual checks"
+ },
+ {
+  "key": "SCRUM-410",
+  "summary": "Distinct-puzzle count test",
+  "automatable": true,
+  "note": ""
+ }
+]

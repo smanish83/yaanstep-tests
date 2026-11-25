@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../support/test';
 import { url } from '../support/site';
 import { APPROVED_STEPS, SHAME_WORDS } from '../support/approved-steps';
 import { axeViolations, expectNothingStored, watchRequests } from '../support/checks';

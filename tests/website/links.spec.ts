@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../support/test';
 import { site, url } from '../support/site';
 
 // Every link, picture, style sheet and script on every page must lead somewhere. SCRUM-386.

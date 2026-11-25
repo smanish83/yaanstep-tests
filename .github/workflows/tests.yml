@@ -1,0 +1,60 @@
+name: Yaanstep tests
+
+# These tests do not need to run every day. They run:
+#   - when someone starts them by hand (Actions tab > Yaanstep tests > Run workflow), choosing the group to run
+#   - once a week (Monday 07:00 UTC): the quick groups only, smoke and a11y
+# Nothing runs on every push.
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Which tests (smoke, a11y, regression, e2e, visual, sweeps, or all)'
+        required: true
+        default: smoke
+      site_ref:
+        description: 'Branch or commit of smanish83/yaanstep-website to test'
+        required: false
+        default: main
+  schedule:
+    - cron: '0 7 * * 1'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: smanish83/yaanstep-website
+          ref: ${{ github.event.inputs.site_ref || 'main' }}
+          path: site
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run the chosen tests
+        env:
+          CI: 'true'
+          SITE_DIR: site
+          SITE_PROFILE: next
+          COVERAGE: '1'
+        run: |
+          S="${{ github.event.inputs.suite || 'quick' }}"
+          if [ "$S" = "quick" ]; then SUITE=smoke npx playwright test --project=desktop --project=phone || R=1; SUITE=a11y npx playwright test --project=desktop --project=phone || R=1; exit ${R:-0}
+          elif [ "$S" = "all" ]; then npx playwright test
+          else SUITE="$S" npx playwright test; fi
+      - name: Summary
+        if: always()
+        run: |
+          node scripts/summary.mjs >> "$GITHUB_STEP_SUMMARY" || true
+          node scripts/coverage.mjs >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            reports/html
+            reports/coverage
+            test-results
+          retention-days: 14

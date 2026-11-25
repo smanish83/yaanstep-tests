@@ -1,6 +1,6 @@
 {
   "name": "yaanstep-tests",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Playwright + TypeScript test automation for Yaanstep. Separate project from the site and the apps. Owned by QA.",
   "scripts": {
@@ -12,7 +12,17 @@
     "typecheck": "tsc --noEmit",
     "test:maths": "playwright test tests/website/maths-draft",
     "test:maths:quick": "playwright test tests/website/maths-draft.spec.ts",
-    "test:reading": "playwright test tests/website/reading-draft"
+    "test:reading": "playwright test tests/website/reading-draft",
+    "test:smoke": "SUITE=smoke playwright test --project=desktop --project=phone",
+    "test:a11y": "SUITE=a11y playwright test --project=desktop --project=phone",
+    "test:regression": "SUITE=regression playwright test",
+    "test:e2e": "SUITE=e2e playwright test --project=desktop --project=phone",
+    "test:visual": "SUITE=visual playwright test --project=desktop --project=phone",
+    "test:visual:update": "SUITE=visual playwright test --project=desktop --project=phone --update-snapshots",
+    "test:sweeps": "SUITE=sweeps playwright test",
+    "test:coverage": "COVERAGE=1 playwright test --project=desktop --project=phone && node scripts/coverage.mjs",
+    "coverage": "node scripts/coverage.mjs",
+    "traceability": "node scripts/traceability.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
